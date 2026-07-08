@@ -105,14 +105,11 @@ Or use the [Live Server](https://marketplace.visualstudio.com/items?itemName=rit
 | Branch | Description |
 |---|---|
 | `main` | Stable production code |
-<<<<<<< HEAD
-| `Ntando` | Active development branch |
-=======
 | `Nurr` | Active development branch |
 | `Ntando` | Active development branch |
 | `Semoshwe` | Active development branch |
 | `Sisanda` | Active development branch |
->>>>>>> 60364b2701c990734f82212504514e360fe1d828
+
 
 ---
 
@@ -121,11 +118,8 @@ Or use the [Live Server](https://marketplace.visualstudio.com/items?itemName=rit
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Commit your changes
-<<<<<<< HEAD
-4. Push to your branch and open a pull request against `Ntando`
-=======
 4. Push to your branch and open a pull request against
->>>>>>> 60364b2701c990734f82212504514e360fe1d828
+
 
 ---
 
