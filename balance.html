@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Balance - Hopeful Hearts</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .balance-container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 32px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+    }
+    .balance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .balance-header h1 { font-size: 1.5rem; margin: 0; }
+    
+    .balance-card {
+      background: linear-gradient(135deg, #f97316, #ea580c);
+      color: white;
+      padding: 32px;
+      border-radius: 16px;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .balance-card .label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .balance-card .amount {
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 8px 0;
+    }
+    .balance-card .sub {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    .deposit-section {
+      background: #f8fafc;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+    }
+    .deposit-section h3 {
+      margin-bottom: 16px;
+      color: #0f172a;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #0f172a;
+      font-size: 0.9rem;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus {
+      outline: 2px solid #f97316;
+      border-color: transparent;
+    }
+    .form-group input.error {
+      border-color: #ef4444;
+      outline: 2px solid #fecaca;
+    }
+    .form-group input.success {
+      border-color: #22c55e;
+      outline: 2px solid #bbf7d0;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn-block {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+    }
+    .btn-success {
+      background: #22c55e;
+      color: white;
+    }
+    .btn-success:hover { background: #16a34a; }
+
+    .message {
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: none;
+    }
+    .message.success {
+      display: block;
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+    .message.error {
+      display: block;
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .donation-history {
+      margin-top: 24px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 24px;
+    }
+    .donation-history h3 { margin-bottom: 12px; color: #0f172a; }
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.9rem;
+    }
+    .history-item .amount-positive {
+      color: #22c55e;
+      font-weight: 600;
+    }
+    .history-item .amount-negative {
+      color: #ef4444;
+      font-weight: 600;
+    }
+    .history-item .date {
+      color: #64748b;
+      font-size: 0.8rem;
+    }
+
+    .auth-required {
+      text-align: center;
+      padding: 40px;
+      background: #f8fafc;
+      border-radius: 12px;
+    }
+    .auth-required h2 { margin-bottom: 12px; }
+    .auth-required .btn-group { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+      color: #64748b;
+    }
+    .loading-spinner.active { display: block; }
+
+    .user-info {
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
+      color: #0f172a;
+    }
+    .user-info code {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    .debug-info {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      display: none;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="balance-container" id="balanceContainer">
+    <!-- Will be populated by JavaScript -->
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+
+    const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const container = document.getElementById('balanceContainer')
+    let currentUser = null
+    let currentBalance = 0
+    let donationHistory = []
+
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        currentUser = user
+        await loadBalance(user.id)
+        renderBalancePage()
+      } else {
+        renderAuthRequired()
+      }
+    }
+
+    async function loadBalance(userId) {
+      try {
+        // Get balance
+        const { data: balanceData } = await supabase
+          .from('balances')
+          .select('balance')
+          .eq('user_id', userId)
+          .single()
+        
+        currentBalance = balanceData?.balance || 0
+
+        // Get transaction history
+        const { data: donations } = await supabase
+          .from('donations')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20)
+        
+        donationHistory = donations || []
+        
+      } catch (error) {
+        console.error('Error loading balance:', error)
+      }
+    }
+
+    function renderAuthRequired() {
+      container.innerHTML = `
+        <div class="auth-required">
+          <h2>Sign In Required</h2>
+          <p style="color: #64748b; margin-bottom: 8px;">
+            Please sign in to view your balance.
+          </p>
+          <div class="btn-group">
+            <a href="login.html?return=balance.html" class="btn btn-primary">Sign In</a>
+            <a href="signup.html?return=balance.html" class="btn btn-outline">Create Account</a>
+          </div>
+          <div style="margin-top: 20px;">
+            <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
+          </div>
+        </div>
+      `
+    }
+
+    function renderBalancePage() {
+      container.innerHTML = `
+        <div class="balance-header">
+          <h1>My Balance</h1>
+          <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
+        </div>
+
+        <div class="user-info">
+          Logged in as: <strong>${currentUser?.email}</strong>
+          <br />
+          User ID: <code>${currentUser?.id}</code>
+        </div>
+
+        <div class="balance-card">
+          <div class="label">Available Balance</div>
+          <div class="amount">$${currentBalance.toFixed(2)}</div>
+          <div class="sub">${donationHistory.length} transactions</div>
+        </div>
+
+        <div class="deposit-section">
+          <h3>Add Funds</h3>
+          <form id="depositForm">
+            <div class="form-group">
+              <label for="depositAmount">Amount ($) *Minimum $10</label>
+              <input type="number" id="depositAmount" placeholder="10.00" step="0.01" min="10" required />
+            </div>
+
+            <div class="form-group">
+              <label for="cardNumber">Card Number</label>
+              <input type="text" id="cardNumber" placeholder="4111 1111 1111 1111" maxlength="19" required />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="expiryDate">Expiry Date</label>
+                <input type="text" id="expiryDate" placeholder="MM/YY" maxlength="5" required />
+              </div>
+              <div class="form-group">
+                <label for="cvv">CVV</label>
+                <input type="text" id="cvv" placeholder="123" maxlength="4" required />
+              </div>
+            </div>
+
+            <div id="depositMessage" class="message"></div>
+            <div id="depositSpinner" class="loading-spinner">⏳ Processing deposit...</div>
+
+            <button type="submit" class="btn btn-success btn-block" id="depositBtn">
+              Add Funds
+            </button>
+          </form>
+        </div>
+
+        <div id="debugInfo" class="debug-info"></div>
+
+        <div class="donation-history">
+          <h3>Recent Transactions</h3>
+          ${donationHistory.length === 0 ? '<p style="color: #64748b;">No transactions yet.</p>' : 
+            donationHistory.slice(0, 10).map(d => `
+              <div class="history-item">
+                <div>
+                  <span class="${d.amount > 0 ? 'amount-positive' : 'amount-negative'}">
+                    ${d.amount > 0 ? '+' : '-'}$${Math.abs(d.amount).toFixed(2)}
+                  </span>
+                  <span style="color: #64748b; font-size: 0.8rem; margin-left: 8px;">${d.amount > 0 ? 'Deposit' : 'Donation'}</span>
+                  ${d.status ? `<span style="color: #64748b; font-size: 0.7rem; margin-left: 8px;">(${d.status})</span>` : ''}
+                </div>
+                <div>
+                  <span class="date">${new Date(d.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            `).join('')
+          }
+        </div>
+
+        <div style="text-align: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+          <a href="donate.html" class="btn btn-primary">Make a Donation</a>
+        </div>
+      `
+
+      setupDepositForm()
+    }
+
+    function setupDepositForm() {
+      const form = document.getElementById('depositForm')
+      const cardNumber = document.getElementById('cardNumber')
+      const expiryDate = document.getElementById('expiryDate')
+      const cvv = document.getElementById('cvv')
+      const depositAmount = document.getElementById('depositAmount')
+      const messageDiv = document.getElementById('depositMessage')
+      const spinner = document.getElementById('depositSpinner')
+      const depositBtn = document.getElementById('depositBtn')
+      const debugDiv = document.getElementById('debugInfo')
+
+      function log(msg) {
+        console.log(msg)
+        if (debugDiv) {
+          debugDiv.style.display = 'block'
+          debugDiv.textContent += msg + '\n'
+          debugDiv.scrollTop = debugDiv.scrollHeight
+        }
+      }
+
+      log('Form loaded')
+
+      // Format card number with spaces
+      cardNumber.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '')
+        if (value.length > 16) value = value.slice(0, 16)
+        let formatted = ''
+        for (let i = 0; i < value.length; i++) {
+          if (i > 0 && i % 4 === 0) formatted += ' '
+          formatted += value[i]
+        }
+        e.target.value = formatted
+      })
+
+      // Format expiry date
+      expiryDate.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '')
+        if (value.length >= 2) {
+          value = value.substring(0, 2) + '/' + value.substring(2, 4)
+        }
+        e.target.value = value
+      })
+
+      // Luhn algorithm - SIMPLE and WORKS
+      function luhnCheck(cardNumber) {
+        // Remove all spaces and non-digits
+        const digits = cardNumber.replace(/\s/g, '').split('').map(Number)
+        
+        if (digits.length < 13 || digits.length > 19) {
+          log(`Invalid length: ${digits.length}`)
+          return false
+        }
+        
+        let sum = 0
+        let isEven = false
+        
+        // Loop from right to left
+        for (let i = digits.length - 1; i >= 0; i--) {
+          let digit = digits[i]
+          
+          if (isEven) {
+            digit *= 2
+            if (digit > 9) digit -= 9
+          }
+          
+          sum += digit
+          isEven = !isEven
+        }
+        
+        const isValid = sum % 10 === 0
+        log(`Luhn check: sum=${sum}, valid=${isValid}`)
+        return isValid
+      }
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        log('FORM SUBMITTED')
+        
+        messageDiv.className = 'message'
+        messageDiv.style.display = 'none'
+        spinner.classList.remove('active')
+        
+        document.querySelectorAll('.form-group input').forEach(input => {
+          input.classList.remove('error', 'success')
+        })
+
+        // 1. Validate amount
+        const amount = parseFloat(depositAmount.value)
+        log(`Amount: ${amount}`)
+        
+        if (!amount || amount < 10) {
+          log('Amount must be at least $10')
+          showMessage('Please enter an amount of at least $10.', 'error')
+          depositAmount.classList.add('error')
+          return
+        }
+
+        // 2. Validate card number (use the Luhn check)
+        const cardNum = cardNumber.value
+        log(`Card: "${cardNum}"`)
+        
+        if (!luhnCheck(cardNum)) {
+          log('Card validation failed')
+          showMessage('Please enter a valid card number (13-19 digits).', 'error')
+          cardNumber.classList.add('error')
+          return
+        }
+        cardNumber.classList.add('success')
+        log('Card validated')
+
+        // 3. Validate expiry
+        const expiry = expiryDate.value
+        log(`Expiry: "${expiry}"`)
+        
+        if (!expiry || expiry.length !== 5 || !expiry.includes('/')) {
+          log('Invalid expiry format')
+          showMessage('Please enter a valid expiry date (MM/YY).', 'error')
+          expiryDate.classList.add('error')
+          return
+        }
+        
+        const [month, year] = expiry.split('/')
+        const m = parseInt(month)
+        const y = parseInt('20' + year)
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() + 1
+        
+        if (m < 1 || m > 12 || y < currentYear || (y === currentYear && m < currentMonth)) {
+          log('Expiry date expired or invalid')
+          showMessage('Please enter a valid expiry date (MM/YY).', 'error')
+          expiryDate.classList.add('error')
+          return
+        }
+        expiryDate.classList.add('success')
+        log('Expiry validated')
+
+        // 4. Validate CVV
+        const cvvValue = cvv.value
+        log(`CVV: "${cvvValue}"`)
+        
+        if (!cvvValue || cvvValue.length < 3 || cvvValue.length > 4 || !/^\d+$/.test(cvvValue)) {
+          log('Invalid CVV')
+          showMessage('Please enter a valid CVV (3-4 digits).', 'error')
+          cvv.classList.add('error')
+          return
+        }
+        cvv.classList.add('success')
+        log('CVV validated')
+
+        log('ALL VALIDATIONS PASSED!')
+        log(`User ID: ${currentUser.id}`)
+        log(`User Email: ${currentUser.email}`)
+
+        // Process deposit
+        spinner.classList.add('active')
+        depositBtn.disabled = true
+        depositBtn.textContent = 'Processing...'
+
+        try {
+          // Insert donation record
+          log('Saving to database...')
+          
+          const { error: insertError } = await supabase
+            .from('donations')
+            .insert({
+              user_id: currentUser.id,
+              user_email: currentUser.email,
+              amount: amount,
+              message: 'Card deposit',
+              status: 'deposit'
+            })
+          
+          if (insertError) {
+            log(`Insert error: ${insertError.message}`)
+            throw insertError
+          }
+          log('Donation record inserted')
+
+          // Update balance
+          //const newBalance = currentBalance + amount
+          //log(`New balance: $${newBalance.toFixed(2)}`)
+          //
+          //const { error: balanceError } = await supabase
+          //  .from('balances')
+          //  .upsert({
+          //    user_id: currentUser.id,
+          //    balance: newBalance,
+          //    updated_at: new Date().toISOString()
+          //  })
+
+          // Update balance using RPC function
+          const newBalance = currentBalance + amount
+          log(`New balance: $${newBalance.toFixed(2)}`)
+
+          const { error: balanceError } = await supabase
+            .rpc('update_balance', {
+              p_user_id: currentUser.id,
+              p_amount: amount
+            })
+          
+          if (balanceError) {
+            log(`Balance error: ${balanceError.message}`)
+            throw balanceError
+          }
+          log('Balance updated')
+
+          // Update local state
+          currentBalance = newBalance
+          
+          showMessage(`Successfully added $${amount.toFixed(2)} to your balance!`, 'success')
+          log('Deposit complete!')
+          
+          // Update balance display
+          document.querySelector('.balance-card .amount').textContent = `$${newBalance.toFixed(2)}`
+          
+          // Reset form
+          depositAmount.value = ''
+          cardNumber.value = ''
+          expiryDate.value = ''
+          cvv.value = ''
+          document.querySelectorAll('.form-group input').forEach(input => {
+            input.classList.remove('error', 'success')
+          })
+          
+          // Reload transaction history
+          setTimeout(async () => {
+            await loadBalance(currentUser.id)
+            renderBalancePage()
+          }, 1000)
+
+        } catch (error) {
+          log(`Error: ${error.message}`)
+          showMessage('Failed to process deposit. Please try again.', 'error')
+        } finally {
+          spinner.classList.remove('active')
+          depositBtn.disabled = false
+          depositBtn.textContent = 'Add Funds'
+        }
+      })
+
+      function showMessage(text, type) {
+        log(`Message: ${text}`)
+        messageDiv.textContent = text
+        messageDiv.className = `message ${type}`
+        messageDiv.style.display = 'block'
+      }
+    }
+
+    checkAuth()
+  </script>
+</body>
+</html>
