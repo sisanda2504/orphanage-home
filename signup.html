@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up - Hopeful Hearts</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .auth-container {
+      max-width: 400px;
+      margin: 60px auto;
+      padding: 32px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+    }
+    .auth-container h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .auth-container .subtitle { color: #64748b; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 4px; color: #0f172a; }
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .form-group input:focus { outline: 2px solid #f97316; border-color: transparent; }
+    .btn-block { width: 100%; padding: 12px; margin-top: 8px; }
+    .auth-link { text-align: center; margin-top: 16px; color: #64748b; }
+    .auth-link a { color: #f97316; font-weight: 600; }
+    .error-message { color: #ef4444; font-size: 0.9rem; margin-top: 8px; display: none; }
+    .success-message { color: #22c55e; font-size: 0.9rem; margin-top: 8px; display: none; }
+    .role-selector { display: flex; gap: 16px; margin: 8px 0; }
+    .role-selector label { display: flex; align-items: center; gap: 6px; font-weight: normal; cursor: pointer; }
+    #adminCodeGroup { display: none; margin-top: 8px; }
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+      color: #64748b;
+    }
+    .loading-spinner.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <h1>🏠 Create Account</h1>
+    <p class="subtitle">Join our community of supporters</p>
+    
+    <form id="signupForm">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="Your full name" required />
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required />
+      </div>
+      
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Min 6 characters" minlength="6" required />
+      </div>
+      
+      <div class="form-group">
+        <label>Account Type</label>
+        <div class="role-selector">
+          <label>
+            <input type="radio" name="role" value="user" checked />
+            Regular User
+          </label>
+          <label>
+            <input type="radio" name="role" value="admin" />
+            Admin
+          </label>
+        </div>
+        <div id="adminCodeGroup">
+          <input type="password" id="adminCode" placeholder="Enter admin code" style="width:100%; padding:8px 12px; border:1px solid #cbd5e1; border-radius:8px;" />
+        </div>
+      </div>
+      
+      <div id="errorMessage" class="error-message"></div>
+      <div id="successMessage" class="success-message"></div>
+      <div id="loadingSpinner" class="loading-spinner">⏳ Creating account...</div>
+      
+      <button type="submit" class="btn btn-primary btn-block" id="signupBtn">Create Account</button>
+    </form>
+    
+    <div class="auth-link">
+      Already have an account? <a href="login.html">Sign In</a>
+    </div>
+    <div class="auth-link" style="margin-top: 8px;">
+      <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+
+    const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const ADMIN_SECRET_CODE = 'hopeful2026'
+
+    document.querySelectorAll('input[name="role"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const adminGroup = document.getElementById('adminCodeGroup')
+        adminGroup.style.display = e.target.value === 'admin' ? 'block' : 'none'
+      })
+    })
+
+    const form = document.getElementById('signupForm')
+    const errorDiv = document.getElementById('errorMessage')
+    const successDiv = document.getElementById('successMessage')
+    const loadingSpinner = document.getElementById('loadingSpinner')
+    const signupBtn = document.getElementById('signupBtn')
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      
+      errorDiv.style.display = 'none'
+      successDiv.style.display = 'none'
+      loadingSpinner.classList.add('active')
+      signupBtn.disabled = true
+      signupBtn.textContent = 'Creating account...'
+      
+      const fullName = document.getElementById('fullName').value.trim()
+      const email = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+      const role = document.querySelector('input[name="role"]:checked').value
+      
+      if (!fullName || !email || !password) {
+        errorDiv.textContent = 'Please fill in all required fields.'
+        errorDiv.style.display = 'block'
+        loadingSpinner.classList.remove('active')
+        signupBtn.disabled = false
+        signupBtn.textContent = 'Create Account'
+        return
+      }
+      
+      try {
+        if (role === 'admin') {
+          const adminCode = document.getElementById('adminCode').value
+          if (adminCode !== ADMIN_SECRET_CODE) {
+            throw new Error('Invalid admin code.')
+          }
+        }
+        
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              display_name: fullName,
+              role: role
+            }
+          }
+        })
+        
+        if (error) throw error
+        
+        successDiv.textContent = 'Account created! Redirecting...'
+        successDiv.style.display = 'block'
+        loadingSpinner.classList.remove('active')
+        
+        setTimeout(() => {
+          window.location.href = role === 'admin' ? 'dashboard.html' : 'index.html'
+        }, 1500)
+        
+      } catch (error) {
+        errorDiv.textContent = error.message || 'Something went wrong. Please try again.'
+        errorDiv.style.display = 'block'
+        loadingSpinner.classList.remove('active')
+        signupBtn.disabled = false
+        signupBtn.textContent = 'Create Account'
+      }
+    })
+  </script>
+</body>
+</html>

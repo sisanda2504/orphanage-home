@@ -17,8 +17,16 @@
       <a href="#about">About</a>
       <a href="#mission">Mission</a>
       <a href="#contact">Contact</a>
+      <a href="dashboard.html" id="dashboardLink" style="display:none;">📊 Dashboard</a>
     </nav>
-    <a href="#donate" class="btn btn-primary">Donate</a>
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline">Sign In</a>
+      <a href="signup.html" class="btn btn-primary">Join Us</a>
+    </div>
+    <div id="userMenu" style="display:none; align-items:center; gap:12px;">
+      <span id="userNameDisplay" style="font-weight:500; color:#0f172a;"></span>
+      <button id="logoutBtn" class="btn btn-outline" style="padding:6px 14px; font-size:0.85rem; cursor:pointer;">Logout</button>
+    </div>
   </header>
 
   <main class="hero" id="about">
@@ -31,7 +39,7 @@
         shelter, education, and unconditional care to those who need it most.
       </p>
       <div class="hero-actions">
-        <a href="#donate" class="btn btn-primary">Donate Now</a>
+        <a href="#" id="donateBtn" class="btn btn-primary">Donate Now</a>
         <a href="#mission" class="btn btn-outline">Learn More</a>
       </div>
     </div>
@@ -57,7 +65,7 @@
     </div>
   </section>
 
-  <!-- <footer class="site-footer" id="contact">
+  <footer class="site-footer" id="contact">
     <div class="footer-inner">
       <div class="brand">
         <img src="logo.png" alt="" class="brand-logo small" />
@@ -68,6 +76,78 @@
         <a href="tel:+10000000000">+1 (000) 000-0000</a>
       </div>
     </div>
-  </footer> -->
+  </footer>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+
+    const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const authButtons = document.getElementById('authButtons')
+    const userMenu = document.getElementById('userMenu')
+    const userNameDisplay = document.getElementById('userNameDisplay')
+    const logoutBtn = document.getElementById('logoutBtn')
+    const donateBtn = document.getElementById('donateBtn')
+    const dashboardLink = document.getElementById('dashboardLink')
+
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        authButtons.style.display = 'none'
+        userMenu.style.display = 'flex'
+        
+        const { data: profile } = await supabase
+          .from('users')
+          .select('display_name, role')
+          .eq('id', user.id)
+          .single()
+        
+        userNameDisplay.textContent = profile?.display_name || user.email
+        
+        if (profile?.role === 'admin') {
+          dashboardLink.style.display = 'inline'
+        }
+        
+        donateBtn.href = 'donate.html'
+        donateBtn.onclick = null
+      } else {
+        authButtons.style.display = 'flex'
+        userMenu.style.display = 'none'
+        dashboardLink.style.display = 'none'
+        
+        donateBtn.href = 'javascript:void(0)'
+        donateBtn.onclick = function(e) {
+          e.preventDefault()
+          e.stopPropagation()
+          const shouldLogin = confirm('Please sign in or create an account to donate. Click OK to login.')
+          if (shouldLogin) {
+            window.location.href = 'login.html?return=donate.html'
+          }
+        }
+      }
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      window.location.reload()
+    })
+
+    checkUser()
+
+    supabase.auth.onAuthStateChange(() => {
+      checkUser()
+    })
+  </script>
 </body>
 </html>

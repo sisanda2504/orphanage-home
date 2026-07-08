@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase Connection</title>
+</head>
+<body>
+    <h1>🔌 Supabase Connection Test</h1>
+    <div id="results"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.43.0/dist/umd/supabase.min.js"></script>
+    <script>
+        const results = document.getElementById('results')
+        
+        // YOUR SUPABASE CREDENTIALS
+        const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
+
+        function log(message, isError = false) {
+            const p = document.createElement('p')
+            p.textContent = message
+            p.style.color = isError ? 'red' : 'green'
+            results.appendChild(p)
+        }
+
+        async function runTests() {
+            log('🚀 Starting tests...')
+            
+            // Test 1: Check if Supabase is loaded
+            if (typeof window.supabase === 'undefined') {
+                log('❌ Supabase library not loaded!', true)
+                return
+            }
+            log('✅ Supabase library loaded')
+
+            // Test 2: Create client
+            try {
+                const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey)
+                log('✅ Supabase client created')
+                
+                // Test 3: Check if we can get the auth URL
+                log('📍 Auth URL would be: ' + supabaseUrl + '/auth/v1')
+                
+                // Test 4: Try to get the session (this doesn't require authentication)
+                log('🔄 Testing auth endpoint...')
+                const { data, error } = await supabase.auth.getSession()
+                
+                if (error) {
+                    log('❌ Auth error: ' + error.message, true)
+                } else {
+                    log('✅ Auth endpoint is reachable!')
+                    log('📊 Session data: ' + JSON.stringify(data))
+                }
+                
+                // Test 5: Try a simple signup
+                log('🔄 Testing signup endpoint...')
+                const testEmail = 'test-' + Date.now() + '@test.com'
+                const { data: signupData, error: signupError } = await supabase.auth.signUp({
+                    email: testEmail,
+                    password: 'Test123456'
+                })
+                
+                if (signupError) {
+                    log('❌ Signup error: ' + signupError.message, true)
+                } else {
+                    log('✅ Signup successful!')
+                    log('📊 User created: ' + testEmail)
+                }
+                
+                // Test 6: Check if we can query the users table (requires auth)
+                log('🔄 Testing database connection...')
+                const { data: dbData, error: dbError } = await supabase
+                    .from('users')
+                    .select('count')
+                    .limit(1)
+                
+                if (dbError) {
+                    log('❌ Database error: ' + dbError.message, true)
+                } else {
+                    log('✅ Database is reachable!')
+                }
+                
+                log('🏁 Tests complete! Check the results above.')
+                
+            } catch (error) {
+                log('❌ Unexpected error: ' + error.message, true)
+            }
+        }
+
+        // Run tests when page loads
+        runTests()
+    </script>
+</body>
+</html>

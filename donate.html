@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Donate - Hopeful Hearts</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .donate-container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 32px;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+    }
+    .donate-container h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .donate-container .subtitle { color: #64748b; margin-bottom: 24px; }
+    .amount-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .amount-btn {
+      padding: 10px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .amount-btn:hover { border-color: #f97316; }
+    .amount-btn.selected { border-color: #f97316; background: #fff7ed; color: #f97316; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 4px; color: #0f172a; }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      outline: 2px solid #f97316;
+      border-color: transparent;
+    }
+    .btn-block { width: 100%; padding: 12px; margin-top: 8px; }
+    .success-message { 
+      color: #22c55e; 
+      font-size: 0.95rem; 
+      margin-top: 8px; 
+      padding: 12px;
+      background: #f0fdf4;
+      border-radius: 8px;
+      display: none;
+    }
+    .balance-display {
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .balance-amount { font-weight: 700; color: #0f172a; font-size: 1.2rem; }
+    .auth-required {
+      text-align: center;
+      padding: 40px;
+      background: #f8fafc;
+      border-radius: 12px;
+    }
+    .auth-required h2 { margin-bottom: 12px; }
+    .auth-required .btn-group { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+    .loading-spinner {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+      color: #64748b;
+    }
+    .loading-spinner.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="donate-container" id="donateContainer">
+    <!-- Will be populated by JavaScript -->
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+
+    const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    const container = document.getElementById('donateContainer')
+    let currentUser = null
+    let currentProfile = null
+
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        currentUser = user
+        await loadProfile(user.id)
+        renderDonationForm()
+      } else {
+        renderAuthRequired()
+      }
+    }
+
+    async function loadProfile(userId) {
+      const { data } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+      currentProfile = data
+    }
+
+    function renderAuthRequired() {
+      container.innerHTML = `
+        <div class="auth-required">
+          <h2>🔒 Sign In Required</h2>
+          <p style="color: #64748b; margin-bottom: 8px;">
+            Please sign in or create an account to make a donation.
+          </p>
+          <div class="btn-group">
+            <a href="login.html?return=donate.html" class="btn btn-primary">Sign In</a>
+            <a href="signup.html?return=donate.html" class="btn btn-outline">Create Account</a>
+          </div>
+          <div style="margin-top: 20px;">
+            <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
+          </div>
+        </div>
+      `
+    }
+
+    function renderDonationForm() {
+      container.innerHTML = `
+        <h1>❤️ Make a Donation</h1>
+        <p class="subtitle">Support our children's future</p>
+        
+        <div class="balance-display">
+          <span>Your Balance</span>
+          <span class="balance-amount" id="balanceDisplay">$${currentProfile?.total_donated?.toFixed(2) || '0.00'}</span>
+        </div>
+        
+        <form id="donateForm">
+          <div class="form-group">
+            <label>Donation Amount</label>
+            <div class="amount-options">
+              <button type="button" class="amount-btn" data-amount="10">$10</button>
+              <button type="button" class="amount-btn" data-amount="25">$25</button>
+              <button type="button" class="amount-btn" data-amount="50">$50</button>
+              <button type="button" class="amount-btn" data-amount="100">$100</button>
+              <button type="button" class="amount-btn" data-amount="250">$250</button>
+              <button type="button" class="amount-btn" data-amount="500">$500</button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="customAmount">Custom Amount (optional)</label>
+            <input type="number" id="customAmount" placeholder="Enter amount" step="0.01" min="1" />
+          </div>
+          
+          <div class="form-group">
+            <label for="message">Leave a Message (optional)</label>
+            <textarea id="message" rows="3" placeholder="Write a message of hope..."></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label>Payment Method (Mock)</label>
+            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+              <input type="text" placeholder="Card Number: 4111 1111 1111 1111" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 8px;" />
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="text" placeholder="MM/YY" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+                <input type="text" placeholder="CVC" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px;" />
+              </div>
+              <p style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">🔒 Mock payment - no real money processed</p>
+            </div>
+          </div>
+          
+          <div id="successMessage" class="success-message"></div>
+          <div id="loadingSpinner" class="loading-spinner">⏳ Processing donation...</div>
+          
+          <button type="submit" class="btn btn-primary btn-block" id="donateSubmitBtn">Donate Now</button>
+        </form>
+        
+        <div style="text-align: center; margin-top: 16px;">
+          <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
+        </div>
+      `
+
+      setupForm()
+    }
+
+    function setupForm() {
+      document.querySelectorAll('.amount-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'))
+          btn.classList.add('selected')
+          document.getElementById('customAmount').value = ''
+        })
+      })
+
+      document.getElementById('customAmount').addEventListener('input', (e) => {
+        if (e.target.value) {
+          document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'))
+        }
+      })
+
+      const form = document.getElementById('donateForm')
+      const submitBtn = document.getElementById('donateSubmitBtn')
+      const loadingSpinner = document.getElementById('loadingSpinner')
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        
+        let amount = 0
+        const selectedBtn = document.querySelector('.amount-btn.selected')
+        const customAmount = document.getElementById('customAmount').value
+        
+        if (customAmount) {
+          amount = parseFloat(customAmount)
+        } else if (selectedBtn) {
+          amount = parseFloat(selectedBtn.dataset.amount)
+        }
+        
+        if (!amount || amount <= 0) {
+          alert('Please select or enter a donation amount.')
+          return
+        }
+        
+        const message = document.getElementById('message').value.trim()
+        const successMessage = document.getElementById('successMessage')
+        successMessage.style.display = 'none'
+        loadingSpinner.classList.add('active')
+        submitBtn.disabled = true
+        submitBtn.textContent = 'Processing...'
+        
+        try {
+          const { error } = await supabase
+            .from('donations')
+            .insert({
+              user_id: currentUser.id,
+              user_email: currentUser.email,
+              amount: amount,
+              message: message || null
+            })
+          
+          if (error) throw error
+          
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ 
+              total_donated: (currentProfile?.total_donated || 0) + amount 
+            })
+            .eq('id', currentUser.id)
+          
+          if (updateError) throw updateError
+          
+          const { error: balanceError } = await supabase
+            .from('balances')
+            .upsert({
+              user_id: currentUser.id,
+              balance: (currentProfile?.total_donated || 0) + amount,
+              updated_at: new Date().toISOString()
+            })
+          
+          if (balanceError) throw balanceError
+          
+          successMessage.textContent = `✅ Thank you for your donation of $${amount.toFixed(2)}! ❤️`
+          successMessage.style.display = 'block'
+          
+          document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('selected'))
+          document.getElementById('customAmount').value = ''
+          document.getElementById('message').value = ''
+          
+          currentProfile.total_donated = (currentProfile?.total_donated || 0) + amount
+          document.getElementById('balanceDisplay').textContent = `$${currentProfile.total_donated.toFixed(2)}`
+          
+          loadingSpinner.classList.remove('active')
+          submitBtn.disabled = false
+          submitBtn.textContent = 'Donate Now'
+          
+        } catch (error) {
+          console.error('Donation error:', error)
+          alert('Failed to process donation. Please try again.')
+          loadingSpinner.classList.remove('active')
+          submitBtn.disabled = false
+          submitBtn.textContent = 'Donate Now'
+        }
+      })
+    }
+
+    checkAuth()
+  </script>
+</body>
+</html>
