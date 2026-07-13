@@ -348,12 +348,22 @@
         submitBtn.textContent = 'Processing...'
         
         try {
+          // Get donor's display name for the record
+          const { data: profile } = await supabase
+            .from('users')
+            .select('display_name')
+            .eq('id', currentUser.id)
+            .single()
+
+          const donorName = profile?.display_name || currentUser.email
+
           // Insert donation as NEGATIVE amount (this is a donation, spending money)
           const { error: insertError } = await supabase
             .from('donations')
             .insert({
               user_id: currentUser.id,
               user_email: currentUser.email,
+              //donor_name: donorName,
               amount: -amount,  // NEGATIVE - this is a donation
               message: message || null,
               status: 'donation'

@@ -17,7 +17,7 @@
       <a href="#about">About</a>
       <a href="#mission">Mission</a>
       <a href="#contact">Contact</a>
-      <a href="dashboard.html" id="dashboardLink" style="display:none;">Dashboard</a>
+      <a href="admin/admin.html" id="dashboardLink" style="display:none;">Dashboard</a>
     </nav>
     <div id="authButtons">
       <a href="login.html" class="btn btn-outline">Sign In</a>
@@ -65,6 +65,39 @@
       </div>
     </div>
   </section>
+
+  <aside class="chatbot" aria-label="Hopeful Hearts chat assistant">
+    <button class="chatbot-toggle" type="button" aria-label="Open chat" aria-expanded="false" aria-controls="chatbot-panel">
+      <svg class="chatbot-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.3 8.3 0 0 1-3.8-.9L3 21l1.9-5.7A8.3 8.3 0 0 1 4 11.5a8.5 8.5 0 1 1 17 0Z" />
+      </svg>
+    </button>
+
+    <section class="chatbot-panel" id="chatbot-panel" aria-hidden="true" inert>
+      <header class="chatbot-header">
+        <div>
+          <p class="chatbot-kicker">Hopeful Hearts</p>
+          <h2>Chat Assistant</h2>
+        </div>
+        <button class="chatbot-close" type="button" aria-label="Close chat">x</button>
+      </header>
+
+      <div class="chatbot-messages" aria-live="polite"></div>
+
+      <div class="chatbot-prompts" aria-label="Suggested questions">
+        <button type="button" data-prompt="How can I donate?">Donate</button>
+        <button type="button" data-prompt="How can I volunteer?">Volunteer</button>
+        <button type="button" data-prompt="Can I visit the orphanage?">Visit</button>
+        <button type="button" data-prompt="How do I contact you?">Contact</button>
+      </div>
+
+      <form class="chatbot-form">
+        <label class="sr-only" for="chatbot-input">Ask a question</label>
+        <input id="chatbot-input" type="text" autocomplete="off" placeholder="Ask a question..." />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </aside>
 
   <footer class="site-footer" id="contact">
     <div class="footer-inner">
@@ -150,5 +183,6 @@
       checkUser()
     })
   </script>
+  <script src="script.js"></script>
 </body>
 </html>

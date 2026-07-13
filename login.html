@@ -119,8 +119,22 @@
         })
         
         if (error) throw error
-        
-        window.location.href = returnUrl
+
+        // Check if this user is an admin — if so, always go to the dashboard
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        // Also check user_metadata as a fallback (set during signup)
+        const role = profile?.role || data.user.user_metadata?.role
+
+        if (role === 'admin') {
+          window.location.href = 'admin/admin.html'
+        } else {
+          window.location.href = returnUrl
+        }
         
       } catch (error) {
         errorDiv.textContent = error.message || 'Invalid email or password.'
