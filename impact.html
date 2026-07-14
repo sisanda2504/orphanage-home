@@ -3,23 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hopeful Hearts Orphanage — A Home Full of Love</title>
-  <meta name="description" content="Hopeful Hearts is an NGO orphanage providing a safe, loving home, education, and bright futures for children in need." />
+  <title>Our Impact &amp; Donation Map - Hopeful Hearts</title>
+  <meta name="description" content="View our real-time donation map and see our support community growing across the globe." />
+  
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="impact.css" />
+  
+  <!-- Leaflet Map CSS from CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 </head>
 <body>
+  <!-- Header / Navbar -->
   <header class="site-header">
     <div class="brand">
       <img src="logo.png" alt="Hopeful Hearts logo" class="brand-logo" />
       <span class="brand-name">Hopeful Hearts Orphanage</span>
     </div>
     <nav class="site-nav">
-      <a href="index.html#about">About</a>
-      <a href="index.html#mission">Mission</a>
+      <a href="index.html">Home</a>
       <a href="tour.html">Virtual Tour</a>
-      <a href="impact.html">Impact Map</a>
-      <a href="events.html">Events</a>
-      <a href="index.html#contact">Contact</a>
+      <a href="impact.html" class="active">Impact Map</a>
+      <a href="events.html">Events &amp; RSVP</a>
       <a href="admin/admin.html" id="dashboardLink" style="display:none;">Dashboard</a>
     </nav>
     <div id="authButtons">
@@ -33,49 +37,69 @@
     </div>
   </header>
 
-  <main class="hero" id="about">
-    <div class="hero-text">
-      <span class="tag">A home full of love</span>
-      <h1>Every child deserves a place to call home.</h1>
-      <p>
-        Hopeful Hearts is a non-profit orphanage dedicated to giving children
-        a safe place to grow, learn, and dream. With your support, we provide
-        shelter, education, and unconditional care to those who need it most.
-      </p>
-      <div class="hero-actions">
-        <a href="#" id="donateBtn" class="btn btn-primary">Donate Now</a>
-        <a href="#mission" class="btn btn-outline">Learn More</a>
+  <!-- Impact & Map Container -->
+  <main class="impact-container">
+    <div class="impact-header">
+      <span class="tag">Community Impact</span>
+      <h1>Real-Time Donation Map</h1>
+      <p>Every donation brings us one step closer to providing a brighter future. See how our global community of hope is growing day by day.</p>
+    </div>
+
+    <!-- Impact Dashboard Stats -->
+    <div class="impact-stats">
+      <div class="stat-card">
+        <span class="stat-icon">💰</span>
+        <div>
+          <h3 id="statTotalDonations">$0.00</h3>
+          <p>Total Funds Raised</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">❤️</span>
+        <div>
+          <h3 id="statSupporterCount">0</h3>
+          <p>Active Supporters</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🌍</span>
+        <div>
+          <h3 id="statCountriesCount">0</h3>
+          <p>Cities Reached</p>
+        </div>
       </div>
     </div>
-    <div class="hero-image">
-      <img src="kids.jpg" alt="Smiling children playing together outdoors" />
+
+    <!-- Map & Supporter Sidebar Grid -->
+    <div class="impact-grid">
+      <!-- Leaflet Map Container -->
+      <div class="map-wrapper">
+        <div id="map"></div>
+        <div class="map-legend">
+          <span class="legend-item"><span class="legend-pulse"></span> Glowing pulses indicate recent donor locations</span>
+        </div>
+      </div>
+
+      <!-- Supporter Sidebar Panel -->
+      <div class="supporter-sidebar">
+        <h2>Recent Supporter Activity</h2>
+        <div id="supporterTimeline" class="supporter-timeline">
+          <!-- Will be dynamically populated by impact.js -->
+          <div class="loading-timeline">
+            <span class="spinner">⏳</span> Loading recent supporters...
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
-  <section class="mission" id="mission">
-    <div class="mission-grid">
-      <div class="card">
-        <h3>Safe Home</h3>
-        <p>A warm, secure place where children feel loved and protected every day.</p>
-      </div>
-      <div class="card">
-        <h3>Quality Education</h3>
-        <p>Schooling, tutoring, and life skills to help every child thrive.</p>
-      </div>
-      <div class="card">
-        <h3>Healthcare &amp; Care</h3>
-        <p>Nutritious meals, medical care, and emotional support for healthy growth.</p>
-      </div>
-    </div>
-  </section>
-
+  <!-- Chatbot Widget -->
   <aside class="chatbot" aria-label="Hopeful Hearts chat assistant">
     <button class="chatbot-toggle" type="button" aria-label="Open chat" aria-expanded="false" aria-controls="chatbot-panel">
       <svg class="chatbot-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.3 8.3 0 0 1-3.8-.9L3 21l1.9-5.7A8.3 8.3 0 0 1 4 11.5a8.5 8.5 0 1 1 17 0Z" />
       </svg>
     </button>
-
     <section class="chatbot-panel" id="chatbot-panel" aria-hidden="true" inert>
       <header class="chatbot-header">
         <div>
@@ -84,16 +108,13 @@
         </div>
         <button class="chatbot-close" type="button" aria-label="Close chat">x</button>
       </header>
-
       <div class="chatbot-messages" aria-live="polite"></div>
-
       <div class="chatbot-prompts" aria-label="Suggested questions">
         <button type="button" data-prompt="How can I donate?">Donate</button>
         <button type="button" data-prompt="How can I volunteer?">Volunteer</button>
         <button type="button" data-prompt="Can I visit the orphanage?">Visit</button>
         <button type="button" data-prompt="How do I contact you?">Contact</button>
       </div>
-
       <form class="chatbot-form">
         <label class="sr-only" for="chatbot-input">Ask a question</label>
         <input id="chatbot-input" type="text" autocomplete="off" placeholder="Ask a question..." />
@@ -102,7 +123,8 @@
     </section>
   </aside>
 
-  <footer class="site-footer" id="contact">
+  <!-- Footer -->
+  <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="brand">
@@ -111,28 +133,28 @@
         </div>
         <p>Providing safe shelter, education, and compassionate care for children who need it most.</p>
       </div>
-
       <div class="footer-contact">
         <h3>Contact Us</h3>
         <ul class="contact-list">
           <li><span class="contact-icon" aria-hidden="true">✉️</span><a href="mailto:hello@hopefulhearts.org">hello@hopefulhearts.org</a></li>
           <li><span class="contact-icon" aria-hidden="true">📞</span><a href="tel:+27600000000">+27 60 000 0000</a></li>
           <li><span class="contact-icon" aria-hidden="true">📍</span>143 Hope Road, Cape Town, South Africa</li>
-          <li><span class="contact-icon" aria-hidden="true">🕒</span>Mon–Fri: 8:00 AM – 5:00 PM</li>
         </ul>
       </div>
-
       <div class="footer-links">
         <h3>Quick Links</h3>
         <a href="index.html">Home</a>
         <a href="tour.html">Virtual Tour</a>
         <a href="impact.html">Impact Map</a>
         <a href="events.html">Events &amp; RSVP</a>
-        <a href="donate.html">Donate</a>
       </div>
     </div>
   </footer>
 
+  <!-- Leaflet Map JS from CDN -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Supabase Script for Navbar -->
   <script type="importmap">
     {
       "imports": {
@@ -140,7 +162,6 @@
       }
     }
   </script>
-
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
 
@@ -152,12 +173,10 @@
     const userMenu = document.getElementById('userMenu')
     const userNameDisplay = document.getElementById('userNameDisplay')
     const logoutBtn = document.getElementById('logoutBtn')
-    const donateBtn = document.getElementById('donateBtn')
     const dashboardLink = document.getElementById('dashboardLink')
 
     async function checkUser() {
       const { data: { user } } = await supabase.auth.getUser()
-      
       if (user) {
         authButtons.style.display = 'none'
         userMenu.style.display = 'flex'
@@ -169,27 +188,13 @@
           .single()
         
         userNameDisplay.textContent = profile?.display_name || user.email
-        
         if (profile?.role === 'admin') {
           dashboardLink.style.display = 'inline'
         }
-        
-        donateBtn.href = 'donate.html'
-        donateBtn.onclick = null
       } else {
         authButtons.style.display = 'flex'
         userMenu.style.display = 'none'
         dashboardLink.style.display = 'none'
-        
-        donateBtn.href = 'javascript:void(0)'
-        donateBtn.onclick = function(e) {
-          e.preventDefault()
-          e.stopPropagation()
-          const shouldLogin = confirm('Please sign in or create an account to donate. Click OK to login.')
-          if (shouldLogin) {
-            window.location.href = 'login.html?return=donate.html'
-          }
-        }
       }
     }
 
@@ -199,11 +204,13 @@
     })
 
     checkUser()
-
     supabase.auth.onAuthStateChange(() => {
       checkUser()
     })
   </script>
+
   <script src="script.js"></script>
+  <!-- Load the Map script as module so it can import supabase client -->
+  <script type="module" src="impact.js"></script>
 </body>
 </html>

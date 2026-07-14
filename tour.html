@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hopeful Hearts Orphanage — A Home Full of Love</title>
-  <meta name="description" content="Hopeful Hearts is an NGO orphanage providing a safe, loving home, education, and bright futures for children in need." />
+  <title>Virtual Tour - Hopeful Hearts</title>
+  <meta name="description" content="Explore Hopeful Hearts Orphanage through our interactive virtual tour and voice-narrated guides." />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="tour.css" />
 </head>
 <body>
+  <!-- Header / Navbar -->
   <header class="site-header">
     <div class="brand">
       <img src="logo.png" alt="Hopeful Hearts logo" class="brand-logo" />
       <span class="brand-name">Hopeful Hearts Orphanage</span>
     </div>
     <nav class="site-nav">
-      <a href="index.html#about">About</a>
-      <a href="index.html#mission">Mission</a>
-      <a href="tour.html">Virtual Tour</a>
+      <a href="index.html">Home</a>
+      <a href="tour.html" class="active">Virtual Tour</a>
       <a href="impact.html">Impact Map</a>
-      <a href="events.html">Events</a>
-      <a href="index.html#contact">Contact</a>
+      <a href="events.html">Events &amp; RSVP</a>
       <a href="admin/admin.html" id="dashboardLink" style="display:none;">Dashboard</a>
     </nav>
     <div id="authButtons">
@@ -33,42 +33,91 @@
     </div>
   </header>
 
-  <main class="hero" id="about">
-    <div class="hero-text">
-      <span class="tag">A home full of love</span>
-      <h1>Every child deserves a place to call home.</h1>
-      <p>
-        Hopeful Hearts is a non-profit orphanage dedicated to giving children
-        a safe place to grow, learn, and dream. With your support, we provide
-        shelter, education, and unconditional care to those who need it most.
-      </p>
-      <div class="hero-actions">
-        <a href="#" id="donateBtn" class="btn btn-primary">Donate Now</a>
-        <a href="#mission" class="btn btn-outline">Learn More</a>
-      </div>
+  <!-- Public Virtual Tour Content -->
+  <main class="tour-container">
+    <div class="tour-header">
+      <span class="tag">Interactive Experience</span>
+      <h1>Virtual Orphanage Tour</h1>
+      <p>Explore the warm, loving spaces that our children call home. Click through the rooms, interact with local highlights, and listen to our narrated audio guides.</p>
     </div>
-    <div class="hero-image">
-      <img src="kids.jpg" alt="Smiling children playing together outdoors" />
+
+    <!-- Navigation Tabs -->
+    <div class="tour-tabs" role="tablist">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-room="lobby">
+        🚪 Lobby &amp; Reception
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-room="study">
+        📚 Study &amp; Library
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-room="dining">
+        🍽️ Dining Hall &amp; Kitchen
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-room="playground">
+        🌳 Outdoor Playground
+      </button>
+    </div>
+
+    <!-- Tour Main Layout -->
+    <div class="tour-layout">
+      <!-- Media Panel: Image + Hotspots -->
+      <div class="tour-media-panel">
+        <div class="image-container">
+          <img id="roomImage" src="images/lobby_tour.jpg" alt="Hopeful Hearts Lobby" />
+          
+          <!-- Dynamic Hotspots -->
+          <div id="hotspotContainer">
+            <!-- Will be dynamically populated by tour.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Info & Narration Panel -->
+      <div class="tour-info-panel">
+        <h2 id="roomTitle">Lobby &amp; Welcome Area</h2>
+        <p id="roomDescription" class="room-desc">
+          Welcome to the Hopeful Hearts lobby. This is where every child's journey begins with us. Our walls are adorned with their colorful artwork, expressing their dreams and creativity. Our caretakers greet visitors and new children here with open arms, ensuring a warm, supportive first impression.
+        </p>
+
+        <!-- Narration Controls -->
+        <div class="narration-section">
+          <h3>Narrated Audio Guide</h3>
+          <div class="audio-controls">
+            <button id="playAudioBtn" class="audio-btn play-btn" title="Play Narration">
+              ▶ Play Guide
+            </button>
+            <button id="pauseAudioBtn" class="audio-btn pause-btn" title="Pause" disabled>
+              ⏸ Pause
+            </button>
+            <button id="stopAudioBtn" class="audio-btn stop-btn" title="Stop" disabled>
+              ⏹ Stop
+            </button>
+          </div>
+
+          <!-- Soundwave Equalizer Visualizer -->
+          <div class="soundwave-container" id="soundwave">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </div>
+        </div>
+
+        <!-- Hotspot Detail View -->
+        <div class="hotspot-detail-box" id="hotspotDetailBox" style="display:none;">
+          <h4 id="hotspotTitle">Highlight Title</h4>
+          <p id="hotspotContent">Highlight details here.</p>
+        </div>
+      </div>
     </div>
   </main>
 
-  <section class="mission" id="mission">
-    <div class="mission-grid">
-      <div class="card">
-        <h3>Safe Home</h3>
-        <p>A warm, secure place where children feel loved and protected every day.</p>
-      </div>
-      <div class="card">
-        <h3>Quality Education</h3>
-        <p>Schooling, tutoring, and life skills to help every child thrive.</p>
-      </div>
-      <div class="card">
-        <h3>Healthcare &amp; Care</h3>
-        <p>Nutritious meals, medical care, and emotional support for healthy growth.</p>
-      </div>
-    </div>
-  </section>
-
+  <!-- Chatbot Widget -->
   <aside class="chatbot" aria-label="Hopeful Hearts chat assistant">
     <button class="chatbot-toggle" type="button" aria-label="Open chat" aria-expanded="false" aria-controls="chatbot-panel">
       <svg class="chatbot-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -84,16 +133,13 @@
         </div>
         <button class="chatbot-close" type="button" aria-label="Close chat">x</button>
       </header>
-
       <div class="chatbot-messages" aria-live="polite"></div>
-
       <div class="chatbot-prompts" aria-label="Suggested questions">
         <button type="button" data-prompt="How can I donate?">Donate</button>
         <button type="button" data-prompt="How can I volunteer?">Volunteer</button>
         <button type="button" data-prompt="Can I visit the orphanage?">Visit</button>
         <button type="button" data-prompt="How do I contact you?">Contact</button>
       </div>
-
       <form class="chatbot-form">
         <label class="sr-only" for="chatbot-input">Ask a question</label>
         <input id="chatbot-input" type="text" autocomplete="off" placeholder="Ask a question..." />
@@ -102,7 +148,8 @@
     </section>
   </aside>
 
-  <footer class="site-footer" id="contact">
+  <!-- Footer -->
+  <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="brand">
@@ -111,28 +158,25 @@
         </div>
         <p>Providing safe shelter, education, and compassionate care for children who need it most.</p>
       </div>
-
       <div class="footer-contact">
         <h3>Contact Us</h3>
         <ul class="contact-list">
           <li><span class="contact-icon" aria-hidden="true">✉️</span><a href="mailto:hello@hopefulhearts.org">hello@hopefulhearts.org</a></li>
           <li><span class="contact-icon" aria-hidden="true">📞</span><a href="tel:+27600000000">+27 60 000 0000</a></li>
           <li><span class="contact-icon" aria-hidden="true">📍</span>143 Hope Road, Cape Town, South Africa</li>
-          <li><span class="contact-icon" aria-hidden="true">🕒</span>Mon–Fri: 8:00 AM – 5:00 PM</li>
         </ul>
       </div>
-
       <div class="footer-links">
         <h3>Quick Links</h3>
         <a href="index.html">Home</a>
         <a href="tour.html">Virtual Tour</a>
         <a href="impact.html">Impact Map</a>
         <a href="events.html">Events &amp; RSVP</a>
-        <a href="donate.html">Donate</a>
       </div>
     </div>
   </footer>
 
+  <!-- Supabase Integration for Navbar State -->
   <script type="importmap">
     {
       "imports": {
@@ -140,7 +184,6 @@
       }
     }
   </script>
-
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
 
@@ -152,12 +195,10 @@
     const userMenu = document.getElementById('userMenu')
     const userNameDisplay = document.getElementById('userNameDisplay')
     const logoutBtn = document.getElementById('logoutBtn')
-    const donateBtn = document.getElementById('donateBtn')
     const dashboardLink = document.getElementById('dashboardLink')
 
     async function checkUser() {
       const { data: { user } } = await supabase.auth.getUser()
-      
       if (user) {
         authButtons.style.display = 'none'
         userMenu.style.display = 'flex'
@@ -169,27 +210,13 @@
           .single()
         
         userNameDisplay.textContent = profile?.display_name || user.email
-        
         if (profile?.role === 'admin') {
           dashboardLink.style.display = 'inline'
         }
-        
-        donateBtn.href = 'donate.html'
-        donateBtn.onclick = null
       } else {
         authButtons.style.display = 'flex'
         userMenu.style.display = 'none'
         dashboardLink.style.display = 'none'
-        
-        donateBtn.href = 'javascript:void(0)'
-        donateBtn.onclick = function(e) {
-          e.preventDefault()
-          e.stopPropagation()
-          const shouldLogin = confirm('Please sign in or create an account to donate. Click OK to login.')
-          if (shouldLogin) {
-            window.location.href = 'login.html?return=donate.html'
-          }
-        }
       }
     }
 
@@ -199,11 +226,12 @@
     })
 
     checkUser()
-
     supabase.auth.onAuthStateChange(() => {
       checkUser()
     })
   </script>
+  
   <script src="script.js"></script>
+  <script src="tour.js"></script>
 </body>
 </html>

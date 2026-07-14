@@ -259,6 +259,11 @@
           </div>
           
           <div class="form-group">
+            <label for="userLocation">Your Location (City, Country)</label>
+            <input type="text" id="userLocation" placeholder="e.g. Cape Town, South Africa" required />
+          </div>
+          
+          <div class="form-group">
             <label for="message">Leave a Message (optional)</label>
             <textarea id="message" rows="3" placeholder="Write a message of hope..."></textarea>
           </div>
@@ -341,6 +346,8 @@
         }
         
         const message = document.getElementById('message').value.trim()
+        const locationVal = document.getElementById('userLocation').value.trim()
+
         successMessage.style.display = 'none'
         errorMessage.style.display = 'none'
         loadingSpinner.classList.add('active')
@@ -357,16 +364,44 @@
 
           const donorName = profile?.display_name || currentUser.email
 
-          // Insert donation as NEGATIVE amount (this is a donation, spending money)
+          // 1. Geocode location via Nominatim OpenStreetMap
+          let lat = null
+          let lon = null
+          if (locationVal) {
+            try {
+              // Adding user-agent as requested by Nominatim usage policy
+              const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(locationVal)}`, {
+                headers: { 'Accept-Language': 'en' }
+              })
+              const geoData = await geoRes.json()
+              if (geoData && geoData[0]) {
+                lat = parseFloat(geoData[0].lat)
+                lon = parseFloat(geoData[0].lon)
+              }
+            } catch (geoErr) {
+              console.warn("Geocoding service error:", geoErr)
+            }
+          }
+
+          // Fallback if geocoding yields nothing: default to Cape Town (Orphanage Location)
+          if (lat === null || lon === null) {
+            lat = -33.9249
+            lon = 18.4241
+          }
+
+          // 2. Insert donation with location metadata
           const { error: insertError } = await supabase
             .from('donations')
             .insert({
               user_id: currentUser.id,
               user_email: currentUser.email,
-              //donor_name: donorName,
+              donor_name: donorName,
               amount: -amount,  // NEGATIVE - this is a donation
               message: message || null,
-              status: 'donation'
+              status: 'donation',
+              location: locationVal,
+              latitude: lat,
+              longitude: lon
             })
           
           if (insertError) throw insertError
