@@ -727,37 +727,96 @@ const Messages = {
   }
 };
 
-/* ===== EVENTS ===== */
+/* ===== EVENTS (Supabase-backed with localStorage fallback) ===== */
 const Events = {
   KEY: 'hh_events',
+  _dbRows: [],
+  _localRows: [],
+  _ready: false,
+
   init() {
-    this.render();
+    const existing = Store.get(this.KEY, []);
+    this._localRows = existing;
+
     document.getElementById('add-event-btn').addEventListener('click', () => this.openForm());
     document.getElementById('evt-search').addEventListener('input', () => this.render());
+
+    this.render();
+    this.loadFromDB();
   },
-  all()  { return Store.get(this.KEY, []); },
-  save(list) { Store.set(this.KEY, list); Stats.update(); },
+
+  async loadFromDB() {
+    try {
+      const { data, error } = await DB
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+
+      this._dbRows = (data || []).map(e => ({
+        id: e.id,
+        name: e.name,
+        description: e.description,
+        date: e.date,
+        location: e.location,
+        maxAttendees: e.max_attendees,
+        registered: e.registered,
+        _source: 'db'
+      }));
+    } catch (err) {
+      console.warn('Events DB load failed:', err.message);
+    } finally {
+      this._ready = true;
+      this._merged = [...this._dbRows, ...this._localRows];
+      this.render();
+      Stats.update();
+    }
+  },
+
+  all() {
+    if (!this._ready) return this._localRows;
+    return this._merged || [];
+  },
+
+  save(list) {
+    const local = list.filter(e => e._source !== 'db');
+    Store.set(this.KEY, local);
+    this._localRows = local;
+    this._merged = [...this._dbRows, ...local];
+    Stats.update();
+  },
+
   render() {
     const q = document.getElementById('evt-search').value.toLowerCase();
-    let list = this.all().filter(e => !q || `${e.name} ${e.location}`.toLowerCase().includes(q));
     const tbody = document.getElementById('evt-tbody');
+    
+    if (!this._ready) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px"></i>Loading events from database…</td></tr>`;
+      return;
+    }
+    
+    const list = this.all().filter(e => !q || `${e.name} ${e.location}`.toLowerCase().includes(q));
     if (!list.length) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No events found.</td></tr>`; return;
     }
+    
     tbody.innerHTML = list.map(e => `
       <tr>
         <td><strong>${esc(e.name)}</strong></td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.description||'—')}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:0.82rem;">${esc(e.description||'—')}</td>
         <td>${e.date ? new Date(e.date).toLocaleDateString() : '—'}</td>
         <td>${esc(e.location||'—')}</td>
-        <td>${e.maxAttendees||'—'}</td>
+        <td>${e.maxAttendees||100}</td>
         <td>${e.registered||0}</td>
         <td class="action-btns">
-          <button class="act-btn act-edit"   onclick="Events.openForm(Events.all().find(x=>x.id===${e.id}))"><i class="fa-solid fa-pen"></i></button>
-          <button class="act-btn act-delete" onclick="Events.delete(${e.id})"><i class="fa-solid fa-trash"></i></button>
+          <button class="act-btn act-view"   onclick="Events.view('${e.id}')"><i class="fa-solid fa-eye"></i> View</button>
+          <button class="act-btn act-edit"   onclick="Events.openForm(Events.all().find(x=>String(x.id)==='${e.id}'))"><i class="fa-solid fa-pen"></i></button>
+          <button class="act-btn act-delete" onclick="Events.delete('${e.id}')"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`).join('');
   },
+
   openForm(ev = null) {
     const isEdit = !!ev;
     Modal.open(isEdit ? 'Edit Event' : 'Create Event',
@@ -769,41 +828,183 @@ const Events = {
        </div>
        <div class="form-group"><label>Max Attendees</label><input id="ef-max" type="number" min="1" value="${ev?.maxAttendees||''}" placeholder="100" /></div>`,
       `<button class="btn-cancel" onclick="Modal.close()">Cancel</button>
-       <button class="btn-primary" onclick="Events.save_form(${ev?.id||'null'})">
+       <button class="btn-primary" onclick="Events.save_form('${ev?.id||'null'}')">
          <i class="fa-solid fa-floppy-disk"></i> ${isEdit?'Update':'Create'}
        </button>`
     );
   },
-  save_form(id) {
+
+  async save_form(id) {
     const name = document.getElementById('ef-name').value.trim();
     if (!name) { Toast.show('Event name is required.','error'); return; }
-    const list = this.all();
+    
+    const description = document.getElementById('ef-desc').value.trim();
+    const date = document.getElementById('ef-date').value;
+    const location = document.getElementById('ef-loc').value.trim();
+    const maxAttendees = parseInt(document.getElementById('ef-max').value) || 100;
+    
+    const editingEvent = id !== 'null' ? this.all().find(e => String(e.id) === String(id)) : null;
+    
+    if (editingEvent && editingEvent._source === 'db') {
+      try {
+        Loading.show();
+        const { error } = await DB
+          .from('events')
+          .update({
+            name,
+            description,
+            date,
+            location,
+            max_attendees: maxAttendees
+          })
+          .eq('id', id);
+        
+        if (error) throw error;
+        Toast.show('Event updated in Database.', 'success');
+        Modal.close();
+        await this.loadFromDB();
+      } catch (err) {
+        console.error(err);
+        Toast.show('Failed to update event in database: ' + err.message, 'error');
+      } finally {
+        Loading.hide();
+      }
+      return;
+    }
+
+    if (id === 'null' && this._ready) {
+      try {
+        Loading.show();
+        const { error } = await DB
+          .from('events')
+          .insert({
+            name,
+            description,
+            date,
+            location,
+            max_attendees: maxAttendees,
+            registered: 0
+          });
+        
+        if (!error) {
+          Toast.show('Event created in Database.', 'success');
+          Modal.close();
+          await this.loadFromDB();
+          return;
+        }
+        console.warn('Fallback to local event creation due to DB error:', error);
+      } catch (err) {
+        console.warn('Fallback to local event creation:', err);
+      } finally {
+        Loading.hide();
+      }
+    }
+
+    const list = [...this._localRows];
     const data = {
       name,
-      description:  document.getElementById('ef-desc').value.trim(),
-      date:         document.getElementById('ef-date').value,
-      location:     document.getElementById('ef-loc').value.trim(),
-      maxAttendees: parseInt(document.getElementById('ef-max').value) || 0
+      description,
+      date,
+      location,
+      maxAttendees,
+      _source: 'local'
     };
-    if (id) {
-      const i = list.findIndex(e => e.id === id);
+
+    if (editingEvent) {
+      const i = list.findIndex(e => String(e.id) === String(id));
       if (i > -1) list[i] = { ...list[i], ...data };
-      Toast.show('Event updated.','success');
+      Toast.show('Local event updated.','success');
     } else {
-      data.id = Store.nextId(list); data.registered = 0;
+      data.id = 'local_' + Store.nextId(list); 
+      data.registered = 0;
       list.push(data);
       Activity.add('fa-calendar-plus', `Event created: ${name}`);
-      Toast.show('Event created.','success');
+      Toast.show('Local event created.','success');
     }
-    this.save(list); Modal.close(); this.render();
+    
+    this.save(list); 
+    Modal.close(); 
+    this.render();
   },
-  delete(id) {
+
+  async delete(id) {
     if (!confirm('Delete this event?')) return;
-    const list = this.all().filter(e => e.id !== id);
-    this.save(list); this.render();
-    Toast.show('Event deleted.','success');
+    
+    const event = this.all().find(e => String(e.id) === String(id));
+    if (event && event._source === 'db') {
+      try {
+        Loading.show();
+        const { error } = await DB
+          .from('events')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
+        Toast.show('Event deleted from Database.', 'success');
+        await this.loadFromDB();
+      } catch (err) {
+        console.error(err);
+        Toast.show('Failed to delete event from database: ' + err.message, 'error');
+      } finally {
+        Loading.hide();
+      }
+      return;
+    }
+
+    const list = this._localRows.filter(e => String(e.id) !== String(id));
+    this.save(list); 
+    this.render();
+    Toast.show('Local event deleted.','success');
+  },
+
+  async view(id) {
+    const e = this.all().find(x => String(x.id) === String(id));
+    if (!e) return;
+
+    Modal.open('Event Details & RSVPs',
+      `<div class="detail-grid">
+        <div class="detail-item"><span class="label">Event Name</span><span class="value"><strong>${esc(e.name)}</strong></span></div>
+        <div class="detail-item"><span class="label">Date</span><span class="value">${e.date ? new Date(e.date).toLocaleDateString() : '—'}</span></div>
+        <div class="detail-item"><span class="label">Location</span><span class="value">${esc(e.location||'—')}</span></div>
+        <div class="detail-item"><span class="label">Spots Filled</span><span class="value">${e.registered||0} / ${(e.maxAttendees || e.max_attendees || 100)}</span></div>
+        <div class="detail-item detail-message"><span class="label">Description</span><span class="value">${esc(e.description||'—')}</span></div>
+       </div>
+       <div style="margin-top:20px;">
+         <h4 style="font-size:0.95rem;border-bottom:1px solid var(--border-color, #e2e8f0);padding-bottom:8px;margin-bottom:10px;"><i class="fa-solid fa-users"></i> Registered RSVPs</h4>
+         <ul id="event-rsvp-list" style="list-style:none;max-height:150px;overflow-y:auto;font-size:0.85rem;display:grid;gap:6px;padding:0;">
+           <li>Loading RSVPs...</li>
+         </ul>
+       </div>`, '');
+
+    const listEl = document.getElementById('event-rsvp-list');
+    if (e._source === 'db') {
+      try {
+        const { data, error } = await DB
+          .from('event_rsvps')
+          .select('user_name, user_email, created_at')
+          .eq('event_id', id);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          listEl.innerHTML = data.map(r => 
+            `<li style="background:rgba(0,0,0,0.02);padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <span><strong>${esc(r.user_name || 'Supporter')}</strong> (${esc(r.user_email)})</span>
+              <span style="font-size:0.75rem;color:var(--text-muted, #64748b);">${new Date(r.created_at).toLocaleDateString()}</span>
+            </li>`
+          ).join('');
+        } else {
+          listEl.innerHTML = '<li style="color:var(--text-muted, #64748b);font-style:italic;">No online RSVPs yet.</li>';
+        }
+      } catch (err) {
+        console.warn(err);
+        listEl.innerHTML = '<li style="color:#ef4444;">Failed to load RSVPs from database.</li>';
+      }
+    } else {
+      listEl.innerHTML = '<li style="color:var(--text-muted, #64748b);font-style:italic;">Offline event. RSVPs are stored in user sessions.</li>';
+    }
   }
-};
+};;
 
 /* ===== INVENTORY ===== */
 const Inventory = {
@@ -1128,6 +1329,54 @@ document.addEventListener('DOMContentLoaded', () => {
   Activity.render();
   Notifs.updateDot();
   Notifs.render();
+
+  // Real-time cross-tab alerts for support tickets
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'hh_messages') {
+      Messages.render();
+      Stats.update();
+      
+      const list = JSON.parse(e.newValue || '[]');
+      const oldList = JSON.parse(e.oldValue || '[]');
+      if (list.length > oldList.length) {
+        const newMsg = list[list.length - 1];
+        
+        // Show Toast
+        Toast.show(`New Ticket: "${newMsg.subject}" from ${newMsg.name}`, 'info');
+        
+        // Refresh dropdown notifications & activity
+        Activity.render();
+        Notifs.updateDot();
+        Notifs.render();
+        
+        // Play audio alert
+        playNotificationSound();
+      }
+    }
+  });
+
+  function playNotificationSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.12); // E5
+      
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.45);
+    } catch (err) {
+      console.warn("Audio chime failed:", err);
+    }
+  }
 
   // Seed demo data only if NO local non-donation data exists
   // (Donations now come from DB so we skip seeding those)

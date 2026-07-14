@@ -218,7 +218,7 @@
         <div class="balance-display">
           <div>
             <div class="label">Your Available Balance</div>
-            <div class="amount">$${currentBalance.toFixed(2)}</div>
+            <div class="amount">R${currentBalance.toFixed(2)}</div>
           </div>
           <div>
             <a href="balance.html" class="link">Add Funds →</a>
@@ -228,7 +228,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; background: #f8fafc; padding: 12px 16px; border-radius: 8px;">
           <div>
             <div style="font-size: 0.8rem; color: #64748b;">Total Donated</div>
-            <div style="font-weight: 600;">$${totalDonated.toFixed(2)}</div>
+            <div style="font-weight: 600;">R${totalDonated.toFixed(2)}</div>
           </div>
           <div style="text-align: right;">
             <div style="font-size: 0.8rem; color: #64748b;">Donations Made</div>
@@ -240,12 +240,12 @@
           <div class="form-group">
             <label>Choose Donation Amount</label>
             <div class="amount-options">
-              <button type="button" class="amount-btn" data-amount="10" ${currentBalance < 10 ? 'disabled' : ''}>$10</button>
-              <button type="button" class="amount-btn" data-amount="25" ${currentBalance < 25 ? 'disabled' : ''}>$25</button>
-              <button type="button" class="amount-btn" data-amount="50" ${currentBalance < 50 ? 'disabled' : ''}>$50</button>
-              <button type="button" class="amount-btn" data-amount="100" ${currentBalance < 100 ? 'disabled' : ''}>$100</button>
-              <button type="button" class="amount-btn" data-amount="250" ${currentBalance < 250 ? 'disabled' : ''}>$250</button>
-              <button type="button" class="amount-btn" data-amount="500" ${currentBalance < 500 ? 'disabled' : ''}>$500</button>
+              <button type="button" class="amount-btn" data-amount="10" ${currentBalance < 10 ? 'disabled' : ''}>R10</button>
+              <button type="button" class="amount-btn" data-amount="25" ${currentBalance < 25 ? 'disabled' : ''}>R25</button>
+              <button type="button" class="amount-btn" data-amount="50" ${currentBalance < 50 ? 'disabled' : ''}>R50</button>
+              <button type="button" class="amount-btn" data-amount="100" ${currentBalance < 100 ? 'disabled' : ''}>R100</button>
+              <button type="button" class="amount-btn" data-amount="250" ${currentBalance < 250 ? 'disabled' : ''}>R250</button>
+              <button type="button" class="amount-btn" data-amount="500" ${currentBalance < 500 ? 'disabled' : ''}>R500</button>
             </div>
           </div>
           
@@ -256,6 +256,11 @@
           
           <div id="insufficientFunds" class="insufficient-funds">
             Insufficient balance. Please <a href="balance.html" style="color: #f97316; font-weight: 500;">add funds</a> first.
+          </div>
+          
+          <div class="form-group">
+            <label for="userLocation">Your Location (City, Country)</label>
+            <input type="text" id="userLocation" placeholder="e.g. Cape Town, South Africa" required />
           </div>
           
           <div class="form-group">
@@ -341,6 +346,8 @@
         }
         
         const message = document.getElementById('message').value.trim()
+        const locationVal = document.getElementById('userLocation').value.trim()
+
         successMessage.style.display = 'none'
         errorMessage.style.display = 'none'
         loadingSpinner.classList.add('active')
@@ -357,16 +364,44 @@
 
           const donorName = profile?.display_name || currentUser.email
 
-          // Insert donation as NEGATIVE amount (this is a donation, spending money)
+          // 1. Geocode location via Nominatim OpenStreetMap
+          let lat = null
+          let lon = null
+          if (locationVal) {
+            try {
+              // Adding user-agent as requested by Nominatim usage policy
+              const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(locationVal)}`, {
+                headers: { 'Accept-Language': 'en' }
+              })
+              const geoData = await geoRes.json()
+              if (geoData && geoData[0]) {
+                lat = parseFloat(geoData[0].lat)
+                lon = parseFloat(geoData[0].lon)
+              }
+            } catch (geoErr) {
+              console.warn("Geocoding service error:", geoErr)
+            }
+          }
+
+          // Fallback if geocoding yields nothing: default to Cape Town (Orphanage Location)
+          if (lat === null || lon === null) {
+            lat = -33.9249
+            lon = 18.4241
+          }
+
+          // 2. Insert donation with location metadata
           const { error: insertError } = await supabase
             .from('donations')
             .insert({
               user_id: currentUser.id,
               user_email: currentUser.email,
-              //donor_name: donorName,
+              donor_name: donorName,
               amount: -amount,  // NEGATIVE - this is a donation
               message: message || null,
-              status: 'donation'
+              status: 'donation',
+              location: locationVal,
+              latitude: lat,
+              longitude: lon
             })
           
           if (insertError) throw insertError
@@ -385,15 +420,15 @@
           totalDonated = totalDonated + amount
           donationCount = donationCount + 1
           
-          successMessage.textContent = `Thank you for your generous donation of $${amount.toFixed(2)}!`
+          successMessage.textContent = `Thank you for your generous donation of R${amount.toFixed(2)}!`
           successMessage.style.display = 'block'
           
           // Update balance display
-          document.querySelector('.balance-display .amount').textContent = `$${currentBalance.toFixed(2)}`
+          document.querySelector('.balance-display .amount').textContent = `R${currentBalance.toFixed(2)}`
           
           // Update stats
           const stats = document.querySelectorAll('.stats-grid .stat-value')
-          document.querySelectorAll('.balance-display .amount')[0].textContent = `$${currentBalance.toFixed(2)}`
+          document.querySelectorAll('.balance-display .amount')[0].textContent = `R${currentBalance.toFixed(2)}`
           
           // Reset form
           amountBtns.forEach(b => b.classList.remove('selected'))

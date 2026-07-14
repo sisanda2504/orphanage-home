@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support &amp; Tickets - Hopeful Hearts</title>
+  <meta name="description" content="Submit a support ticket or send a message to Hopeful Hearts Orphanage and track status in real-time." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="tickets.css" />
+</head>
+<body>
+  <!-- Header / Navbar -->
+  <header class="site-header">
+    <div class="brand">
+      <img src="logo.png" alt="Hopeful Hearts logo" class="brand-logo" />
+      <span class="brand-name">Hopeful Hearts Orphanage</span>
+    </div>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="tour.html">Virtual Tour</a>
+      <a href="impact.html">Impact Map</a>
+      <a href="events.html">Events &amp; RSVP</a>
+      <a href="admin/admin.html" id="dashboardLink" style="display:none;">Dashboard</a>
+    </nav>
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline">Sign In</a>
+      <a href="signup.html" class="btn btn-primary">Join Us</a>
+    </div>
+    <div id="userMenu" style="display:none; align-items:center; gap:12px;">
+      <span id="userNameDisplay" style="font-weight:500; color:#0f172a;"></span>
+      <a href="balance.html" style="color: #f97316; font-weight: 500;">Balance</a>
+      <button id="logoutBtn" class="btn btn-outline" style="padding:6px 14px; font-size:0.85rem; cursor:pointer;">Logout</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="tickets-container">
+    <!-- Auth Required Block (shown by default, hidden via JS if logged in) -->
+    <div class="auth-required" id="authRequired">
+      <h2>Sign In Required</h2>
+      <p>Please sign in or create an account to submit a support ticket.</p>
+      <div class="btn-group" style="display: flex; gap: 12px; justify-content: center; margin-top: 20px;">
+        <a href="login.html?return=tickets.html" class="btn btn-primary">Sign In</a>
+        <a href="signup.html?return=tickets.html" class="btn btn-outline">Create Account</a>
+      </div>
+      <div style="margin-top: 20px; text-align: center;">
+        <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
+      </div>
+    </div>
+
+    <!-- Centered Ticket Submission Form (shown when logged in) -->
+    <div class="ticket-form-card" id="ticketFormCard" style="display: none;">
+      <form id="ticketForm">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="tkName" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Your Name</label>
+            <input type="text" id="tkName" placeholder="Your name" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px;" required />
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="tkEmail" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Email Address</label>
+            <input type="email" id="tkEmail" placeholder="you@example.com" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px;" required />
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="tkSubject" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Subject</label>
+          <input type="text" id="tkSubject" placeholder="Brief summary of request" style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px;" required />
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="tkMessage" style="display:block; font-weight:600; margin-bottom:4px; font-size:0.9rem;">Detailed Message</label>
+          <textarea id="tkMessage" rows="6" placeholder="Describe your request in detail..." style="width:100%; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; font-family:inherit;" required></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; border-radius: 8px; border: none; font-size:0.95rem;">Submit Support Ticket</button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Slide-out Drawer Backdrop Overlay -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <!-- Slide-out Tickets Drawer (Sent list) -->
+  <div class="tickets-drawer" id="ticketsDrawer">
+    <div class="tickets-drawer-header">
+      <h3>Your Sent Tickets</h3>
+      <button class="tickets-drawer-close" id="drawerCloseBtn" aria-label="Close drawer">×</button>
+    </div>
+    <div class="ticket-list-container" id="ticketListContainer">
+      <div class="ticket-empty">No tickets submitted in this session yet.</div>
+    </div>
+  </div>
+
+  <!-- Floating Ticket History Button -->
+  <button class="tickets-floating-btn" id="drawerToggleBtn" style="display: none;" title="View Your Tickets">
+    🎫
+    <span class="badge" id="ticketBadge" style="display: none;">0</span>
+  </button>
+
+  <!-- Chatbot Widget -->
+  <aside class="chatbot" aria-label="Hopeful Hearts chat assistant">
+    <button class="chatbot-toggle" type="button" aria-label="Open chat" aria-expanded="false" aria-controls="chatbot-panel">
+      <svg class="chatbot-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.3 8.3 0 0 1-3.8-.9L3 21l1.9-5.7A8.3 8.3 0 0 1 4 11.5a8.5 8.5 0 1 1 17 0Z" />
+      </svg>
+    </button>
+    <section class="chatbot-panel" id="chatbot-panel" aria-hidden="true" inert>
+      <header class="chatbot-header">
+        <div>
+          <p class="chatbot-kicker">Hopeful Hearts</p>
+          <h2>Chat Assistant</h2>
+        </div>
+        <button class="chatbot-close" type="button" aria-label="Close chat">x</button>
+      </header>
+      <div class="chatbot-messages" aria-live="polite"></div>
+      <div class="chatbot-prompts" aria-label="Suggested questions">
+        <button type="button" data-prompt="How can I donate?">Donate</button>
+        <button type="button" data-prompt="How can I volunteer?">Volunteer</button>
+        <button type="button" data-prompt="Can I visit the orphanage?">Visit</button>
+        <button type="button" data-prompt="How do I contact you?">Contact</button>
+      </div>
+      <form class="chatbot-form">
+        <label class="sr-only" for="chatbot-input">Ask a question</label>
+        <input id="chatbot-input" type="text" autocomplete="off" placeholder="Ask a question..." />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </aside>
+
+  <!-- Supabase Script for Navbar -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+  <script type="module">
+    import { createClient } from '@supabase/supabase-js'
+
+    const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+    let currentUser = null;
+
+    // HTML escaping helper
+    function esc(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+    }
+
+    // Time-ago relative formatting helper
+    function timeAgo(dateString) {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now - date;
+      
+      if (diffMs < 0) return "Just now";
+      
+      const diffSec = Math.floor(diffMs / 1000);
+      if (diffSec < 10) return "Just now";
+      if (diffSec < 60) return `${diffSec}s ago`;
+      
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      
+      const diffHour = Math.floor(diffMin / 60);
+      if (diffHour < 24) return `${diffHour}h ago`;
+      
+      return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Render user's tickets inside the Drawer feed
+    function renderTickets() {
+      const container = document.getElementById('ticketListContainer');
+      const badge = document.getElementById('ticketBadge');
+      
+      if (!container) return;
+      
+      const messagesList = JSON.parse(localStorage.getItem('hh_messages') || '[]');
+      const userEmail = currentUser?.email || '';
+      const sessionIds = JSON.parse(sessionStorage.getItem('hh_session_ticket_ids') || '[]');
+      
+      const filtered = messagesList.filter(msg => {
+        const belongsToUser = userEmail && msg.email && msg.email.toLowerCase() === userEmail.toLowerCase();
+        const submittedInSession = sessionIds.includes(msg.id);
+        return belongsToUser || submittedInSession;
+      });
+      
+      filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      if (badge) {
+        if (filtered.length > 0) {
+          badge.textContent = filtered.length;
+          badge.style.display = 'flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+      
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="ticket-empty">No tickets submitted in this session yet.</div>`;
+        return;
+      }
+      
+      container.innerHTML = filtered.map(t => {
+        const dateObj = new Date(t.date);
+        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return `
+          <div class="ticket-card">
+            <div class="ticket-card-header">
+              <span class="ticket-subject">${esc(t.subject)}</span>
+              <span class="ticket-status ${t.status === 'read' ? 'read' : ''}">${t.status === 'read' ? 'Reviewed' : 'Sent'}</span>
+            </div>
+            <span class="ticket-time" data-date="${t.date}">Sent: Just now (${timeStr})</span>
+            <p class="ticket-message">${esc(t.message)}</p>
+          </div>
+        `;
+      }).join('');
+      
+      updateRelativeTimes();
+    }
+
+    // Update relative time headers
+    function updateRelativeTimes() {
+      const timeEls = document.querySelectorAll('.ticket-time');
+      timeEls.forEach(el => {
+        const dateStr = el.getAttribute('data-date');
+        if (!dateStr) return;
+        
+        const date = new Date(dateStr);
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        el.textContent = `Sent: ${timeAgo(dateStr)} (${timeStr})`;
+      });
+    }
+
+    // Drawer Visibility Toggle Handlers
+    function setupDrawerControls() {
+      const toggleBtn = document.getElementById('drawerToggleBtn');
+      const closeBtn = document.getElementById('drawerCloseBtn');
+      const backdrop = document.getElementById('drawerBackdrop');
+      const drawer = document.getElementById('ticketsDrawer');
+      
+      function openDrawer() {
+        drawer.classList.add('open');
+        backdrop.classList.add('visible');
+      }
+      
+      function closeDrawer() {
+        drawer.classList.remove('open');
+        backdrop.classList.remove('visible');
+      }
+      
+      if (toggleBtn) toggleBtn.addEventListener('click', openDrawer);
+      if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+      if (backdrop) backdrop.addEventListener('click', closeDrawer);
+    }
+
+    // Setup ticket form submit logic
+    function setupForm() {
+      const form = document.getElementById('ticketForm');
+      if (!form) return;
+      
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        if (!currentUser) {
+          alert("Authentication error. Please sign in to submit a ticket.");
+          window.location.reload();
+          return;
+        }
+        
+        const nameVal = document.getElementById('tkName').value.trim();
+        const emailVal = document.getElementById('tkEmail').value.trim();
+        const subjectVal = document.getElementById('tkSubject').value.trim();
+        const messageVal = document.getElementById('tkMessage').value.trim();
+        
+        const messagesList = JSON.parse(localStorage.getItem('hh_messages') || '[]');
+        const ticketId = Date.now() + Math.floor(Math.random() * 1000);
+        
+        const newTicket = {
+          id: ticketId,
+          name: nameVal,
+          email: emailVal,
+          subject: subjectVal,
+          message: messageVal,
+          date: new Date().toISOString(),
+          status: 'unread'
+        };
+        
+        messagesList.push(newTicket);
+        localStorage.setItem('hh_messages', JSON.stringify(messagesList));
+        
+        const activityLog = JSON.parse(localStorage.getItem('hh_activity') || '[]');
+        activityLog.unshift({ icon: 'fa-envelope', text: `New support ticket: ${subjectVal} from ${nameVal}`, time: new Date().toLocaleString() });
+        localStorage.setItem('hh_activity', JSON.stringify(activityLog.slice(0, 20)));
+
+        const notifs = JSON.parse(localStorage.getItem('hh_notifs') || '[]');
+        notifs.unshift({ icon: 'fa-envelope', text: `New ticket: ${nameVal}`, time: new Date().toLocaleString() });
+        localStorage.setItem('hh_notifs', JSON.stringify(notifs));
+        
+        const sessionIds = JSON.parse(sessionStorage.getItem('hh_session_ticket_ids') || '[]');
+        sessionIds.push(ticketId);
+        sessionStorage.setItem('hh_session_ticket_ids', JSON.stringify(sessionIds));
+        
+        document.getElementById('tkSubject').value = '';
+        document.getElementById('tkMessage').value = '';
+        
+        alert('Support ticket submitted successfully! Tracking is active in the sent-tickets panel.');
+        renderTickets();
+        
+        setTimeout(() => {
+          document.getElementById('ticketsDrawer').classList.add('open');
+          document.getElementById('drawerBackdrop').classList.add('visible');
+        }, 300);
+      });
+    }
+
+    const authButtons = document.getElementById('authButtons')
+    const userMenu = document.getElementById('userMenu')
+    const userNameDisplay = document.getElementById('userNameDisplay')
+    const logoutBtn = document.getElementById('logoutBtn')
+    const dashboardLink = document.getElementById('dashboardLink')
+
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      currentUser = user;
+      
+      const authBlock = document.getElementById('authRequired');
+      const formCard = document.getElementById('ticketFormCard');
+      const floatingBtn = document.getElementById('drawerToggleBtn');
+      
+      const tkNameInput = document.getElementById('tkName');
+      const tkEmailInput = document.getElementById('tkEmail');
+
+      if (user) {
+        authButtons.style.display = 'none'
+        userMenu.style.display = 'flex'
+        
+        const { data: profile } = await supabase
+          .from('users')
+          .select('display_name, role')
+          .eq('id', user.id)
+          .single()
+        
+        userNameDisplay.textContent = profile?.display_name || user.email
+        if (profile?.role === 'admin') {
+          dashboardLink.style.display = 'inline'
+        }
+
+        if (authBlock) authBlock.style.display = 'none';
+        if (formCard) formCard.style.display = 'block';
+        if (floatingBtn) floatingBtn.style.display = 'flex';
+        
+        if (tkNameInput && tkEmailInput) {
+          tkNameInput.value = profile?.display_name || user.email.split('@')[0];
+          tkEmailInput.value = user.email;
+          tkNameInput.readOnly = true;
+          tkEmailInput.readOnly = true;
+        }
+      } else {
+        authButtons.style.display = 'flex'
+        userMenu.style.display = 'none'
+        dashboardLink.style.display = 'none'
+
+        if (authBlock) authBlock.style.display = 'block';
+        if (formCard) formCard.style.display = 'none';
+        if (floatingBtn) floatingBtn.style.display = 'none';
+        
+        document.getElementById('ticketsDrawer').classList.remove('open');
+        document.getElementById('drawerBackdrop').classList.remove('visible');
+      }
+      
+      renderTickets();
+    }
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      window.location.reload()
+    })
+
+    setupDrawerControls();
+    setupForm();
+    checkUser();
+
+    supabase.auth.onAuthStateChange(() => {
+      checkUser();
+    });
+
+    setInterval(updateRelativeTimes, 5000);
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
