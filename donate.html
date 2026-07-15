@@ -362,7 +362,7 @@
             .eq('id', currentUser.id)
             .single()
 
-          const donorName = profile?.display_name || currentUser.email
+          //const donorName = profile?.display_name || currentUser.email
 
           // 1. Geocode location via Nominatim OpenStreetMap
           let lat = null
@@ -395,7 +395,7 @@
             .insert({
               user_id: currentUser.id,
               user_email: currentUser.email,
-              donor_name: donorName,
+              //donor_name: donorName,
               amount: -amount,  // NEGATIVE - this is a donation
               message: message || null,
               status: 'donation',

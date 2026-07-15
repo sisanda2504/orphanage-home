@@ -47,7 +47,7 @@
       font-size: 0.85rem;
       opacity: 0.8;
     }
-
+ 
     .deposit-section {
       background: #f8fafc;
       padding: 24px;
@@ -58,7 +58,7 @@
       margin-bottom: 16px;
       color: #0f172a;
     }
-
+ 
     .form-group {
       margin-bottom: 16px;
     }
@@ -94,7 +94,7 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-
+ 
     .btn-block {
       width: 100%;
       padding: 12px;
@@ -105,7 +105,7 @@
       color: white;
     }
     .btn-success:hover { background: #16a34a; }
-
+ 
     .message {
       padding: 12px;
       border-radius: 8px;
@@ -124,7 +124,7 @@
       color: #991b1b;
       border: 1px solid #fecaca;
     }
-
+ 
     .donation-history {
       margin-top: 24px;
       border-top: 1px solid #e2e8f0;
@@ -150,7 +150,7 @@
       color: #64748b;
       font-size: 0.8rem;
     }
-
+ 
     .auth-required {
       text-align: center;
       padding: 40px;
@@ -159,7 +159,7 @@
     }
     .auth-required h2 { margin-bottom: 12px; }
     .auth-required .btn-group { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
-
+ 
     .loading-spinner {
       display: none;
       text-align: center;
@@ -167,7 +167,7 @@
       color: #64748b;
     }
     .loading-spinner.active { display: block; }
-
+ 
     .user-info {
       background: #f1f5f9;
       padding: 12px 16px;
@@ -182,7 +182,7 @@
       border-radius: 4px;
       font-size: 0.75rem;
     }
-
+ 
     .debug-info {
       background: #1e293b;
       color: #e2e8f0;
@@ -202,7 +202,7 @@
   <div class="balance-container" id="balanceContainer">
     <!-- Will be populated by JavaScript -->
   </div>
-
+ 
   <script type="importmap">
     {
       "imports": {
@@ -210,19 +210,20 @@
       }
     }
   </script>
-
+ 
   <script type="module">
     import { createClient } from '@supabase/supabase-js'
-
+ 
     const supabaseUrl = 'https://irzqdsxdiifosqzqdypj.supabase.co'
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0'
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
+ 
     const container = document.getElementById('balanceContainer')
     let currentUser = null
     let currentBalance = 0
     let donationHistory = []
-
+    let currentProfile = null
+ 
     async function checkAuth() {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -234,9 +235,19 @@
         renderAuthRequired()
       }
     }
-
+ 
     async function loadBalance(userId) {
       try {
+        // Get user profile with subscription info
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        
+        currentProfile = profile
+        window.currentProfile = profile
+ 
         // Get balance
         const { data: balanceData } = await supabase
           .from('balances')
@@ -245,7 +256,7 @@
           .single()
         
         currentBalance = balanceData?.balance || 0
-
+ 
         // Get transaction history
         const { data: donations } = await supabase
           .from('donations')
@@ -260,7 +271,7 @@
         console.error('Error loading balance:', error)
       }
     }
-
+ 
     function renderAuthRequired() {
       container.innerHTML = `
         <div class="auth-required">
@@ -278,26 +289,81 @@
         </div>
       `
     }
-
+ 
     function renderBalancePage() {
       container.innerHTML = `
         <div class="balance-header">
           <h1>My Balance</h1>
           <a href="index.html" style="color: #64748b; font-size: 0.9rem;">← Back to Home</a>
         </div>
-
+ 
         <div class="user-info">
           Logged in as: <strong>${currentUser?.email}</strong>
           <br />
           User ID: <code>${currentUser?.id}</code>
         </div>
-
+ 
         <div class="balance-card">
           <div class="label">Available Balance</div>
           <div class="amount">R${currentBalance.toFixed(2)}</div>
           <div class="sub">${donationHistory.length} transactions</div>
         </div>
-
+ 
+        <div class="deposit-section" style="background: #f0fdf4; border: 2px solid #86efac;">
+          <h3>🌱 Monthly Subscription Donation</h3>
+          <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 16px;">
+            Become a monthly donor! We'll automatically deduct your chosen amount on the same day each month.
+          </p>
+          
+          <form id="subscriptionForm">
+            <div class="form-group">
+              <label>Subscription Status</label>
+              <div style="display: flex; gap: 20px; margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="radio" name="subscriber" value="Y" ${currentProfile?.is_subscriber === 'Y' ? 'checked' : ''} />
+                  Yes, I want to be a monthly donor
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                  <input type="radio" name="subscriber" value="N" ${currentProfile?.is_subscriber !== 'Y' ? 'checked' : ''} />
+                  No
+                </label>
+              </div>
+            </div>
+            
+            <div id="subscriptionDetails" style="${currentProfile?.is_subscriber !== 'Y' ? 'display: none;' : 'display: block;'}">
+              <div class="form-group">
+                <label for="subscriptionAmount">Monthly Donation Amount (R)</label>
+                <input type="number" id="subscriptionAmount" 
+                       placeholder="e.g. 100" 
+                       step="0.01" 
+                       min="10"
+                       value="${currentProfile?.subscription_amount || ''}" />
+              </div>
+              
+              <div class="form-group">
+                <label for="subscriptionDay">Day of Month to Donate</label>
+                <select id="subscriptionDay" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem;">
+                  ${Array.from({length: 28}, (_, i) => i + 1).map(day => 
+                    `<option value="${day}" ${currentProfile?.subscription_day === day ? 'selected' : ''}>${day}</option>`
+                  ).join('')}
+                </select>
+                <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">
+                  We'll process your donation on this day each month
+                </p>
+              </div>
+              
+              <div style="background: #fef3c7; padding: 12px; border-radius: 8px; margin-bottom: 16px; color: #92400e; font-size: 0.9rem;">
+                <strong>💡 Reminder:</strong> Your balance will be automatically deducted on the selected day each month. 
+                Make sure you have enough funds!
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block" id="subscriptionBtn">
+              ${currentProfile?.is_subscriber === 'Y' ? 'Update Subscription' : 'Start Monthly Donation'}
+            </button>
+          </form>
+        </div>
+ 
         <div class="deposit-section">
           <h3>Add Funds</h3>
           <form id="depositForm">
@@ -305,12 +371,12 @@
               <label for="depositAmount">Amount (R) *Minimum R10</label>
               <input type="number" id="depositAmount" placeholder="10.00" step="0.01" min="10" required />
             </div>
-
+ 
             <div class="form-group">
               <label for="cardNumber">Card Number</label>
               <input type="text" id="cardNumber" placeholder="4111 1111 1111 1111" maxlength="19" required />
             </div>
-
+ 
             <div class="form-row">
               <div class="form-group">
                 <label for="expiryDate">Expiry Date</label>
@@ -321,18 +387,18 @@
                 <input type="text" id="cvv" placeholder="123" maxlength="4" required />
               </div>
             </div>
-
+ 
             <div id="depositMessage" class="message"></div>
             <div id="depositSpinner" class="loading-spinner">⏳ Processing deposit...</div>
-
+ 
             <button type="submit" class="btn btn-success btn-block" id="depositBtn">
               Add Funds
             </button>
           </form>
         </div>
-
+ 
         <div id="debugInfo" class="debug-info"></div>
-
+ 
         <div class="donation-history">
           <h3>Recent Transactions</h3>
           ${donationHistory.length === 0 ? '<p style="color: #64748b;">No transactions yet.</p>' : 
@@ -352,15 +418,85 @@
             `).join('')
           }
         </div>
-
+ 
         <div style="text-align: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
           <a href="donate.html" class="btn btn-primary">Make a Donation</a>
         </div>
       `
-
+ 
       setupDepositForm()
+      setupSubscriptionForm()
     }
-
+ 
+    function setupSubscriptionForm() {
+      const form = document.getElementById('subscriptionForm')
+      if (!form) return
+      
+      const subscriberRadios = document.querySelectorAll('input[name="subscriber"]')
+      const detailsDiv = document.getElementById('subscriptionDetails')
+      const submitBtn = document.getElementById('subscriptionBtn')
+      
+      subscriberRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          if (radio.value === 'Y') {
+            detailsDiv.style.display = 'block'
+            submitBtn.textContent = 'Start Monthly Donation'
+          } else {
+            detailsDiv.style.display = 'none'
+            submitBtn.textContent = 'Cancel Subscription'
+          }
+        })
+      })
+      
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault()
+        
+        const isSubscriber = document.querySelector('input[name="subscriber"]:checked').value
+        const amount = parseFloat(document.getElementById('subscriptionAmount')?.value)
+        const day = parseInt(document.getElementById('subscriptionDay')?.value)
+        
+        try {
+          if (isSubscriber === 'Y') {
+            if (!amount || amount < 10) {
+              alert('Please enter a valid amount (minimum R10)')
+              return
+            }
+            
+            const { error } = await supabase
+              .from('users')
+              .update({
+                is_subscriber: 'Y',
+                subscription_amount: amount,
+                subscription_day: day || 1
+              })
+              .eq('id', currentUser.id)
+            
+            if (error) throw error
+            
+            alert(`✅ You are now a monthly donor! R${amount.toFixed(2)} will be donated on day ${day || 1} of each month.`)
+          } else {
+            const { error } = await supabase
+              .from('users')
+              .update({
+                is_subscriber: 'N',
+                subscription_amount: 0
+              })
+              .eq('id', currentUser.id)
+            
+            if (error) throw error
+            
+            alert('❌ Your monthly subscription has been cancelled.')
+          }
+          
+          window.location.reload()
+          
+        } catch (error) {
+          console.error('Subscription error:', error)
+          alert('Failed to update subscription: ' + error.message)
+        }
+      })
+    }
+ 
     function setupDepositForm() {
       const form = document.getElementById('depositForm')
       const cardNumber = document.getElementById('cardNumber')
@@ -371,7 +507,7 @@
       const spinner = document.getElementById('depositSpinner')
       const depositBtn = document.getElementById('depositBtn')
       const debugDiv = document.getElementById('debugInfo')
-
+ 
       function log(msg) {
         console.log(msg)
         if (debugDiv) {
@@ -380,9 +516,9 @@
           debugDiv.scrollTop = debugDiv.scrollHeight
         }
       }
-
+ 
       log('Form loaded')
-
+ 
       // Format card number with spaces
       cardNumber.addEventListener('input', (e) => {
         let value = e.target.value.replace(/\D/g, '')
@@ -394,7 +530,7 @@
         }
         e.target.value = formatted
       })
-
+ 
       // Format expiry date
       expiryDate.addEventListener('input', (e) => {
         let value = e.target.value.replace(/\D/g, '')
@@ -403,7 +539,7 @@
         }
         e.target.value = value
       })
-
+ 
       // Luhn algorithm - SIMPLE and WORKS
       function luhnCheck(cardNumber) {
         // Remove all spaces and non-digits
@@ -434,7 +570,7 @@
         log(`Luhn check: sum=${sum}, valid=${isValid}`)
         return isValid
       }
-
+ 
       form.addEventListener('submit', async (e) => {
         e.preventDefault()
         log('FORM SUBMITTED')
@@ -446,7 +582,7 @@
         document.querySelectorAll('.form-group input').forEach(input => {
           input.classList.remove('error', 'success')
         })
-
+ 
         // 1. Validate amount
         const amount = parseFloat(depositAmount.value)
         log(`Amount: ${amount}`)
@@ -457,7 +593,7 @@
           depositAmount.classList.add('error')
           return
         }
-
+ 
         // 2. Validate card number (use the Luhn check)
         const cardNum = cardNumber.value
         log(`Card: "${cardNum}"`)
@@ -470,7 +606,7 @@
         }
         cardNumber.classList.add('success')
         log('Card validated')
-
+ 
         // 3. Validate expiry
         const expiry = expiryDate.value
         log(`Expiry: "${expiry}"`)
@@ -497,7 +633,7 @@
         }
         expiryDate.classList.add('success')
         log('Expiry validated')
-
+ 
         // 4. Validate CVV
         const cvvValue = cvv.value
         log(`CVV: "${cvvValue}"`)
@@ -510,16 +646,16 @@
         }
         cvv.classList.add('success')
         log('CVV validated')
-
+ 
         log('ALL VALIDATIONS PASSED!')
         log(`User ID: ${currentUser.id}`)
         log(`User Email: ${currentUser.email}`)
-
+ 
         // Process deposit
         spinner.classList.add('active')
         depositBtn.disabled = true
         depositBtn.textContent = 'Processing...'
-
+ 
         try {
           // Insert donation record
           log('Saving to database...')
@@ -539,23 +675,11 @@
             throw insertError
           }
           log('Donation record inserted')
-
-          // Update balance
-          //const newBalance = currentBalance + amount
-          //log(`New balance: R${newBalance.toFixed(2)}`)
-          //
-          //const { error: balanceError } = await supabase
-          //  .from('balances')
-          //  .upsert({
-          //    user_id: currentUser.id,
-          //    balance: newBalance,
-          //    updated_at: new Date().toISOString()
-          //  })
-
+ 
           // Update balance using RPC function
           const newBalance = currentBalance + amount
           log(`New balance: R${newBalance.toFixed(2)}`)
-
+ 
           const { error: balanceError } = await supabase
             .rpc('update_balance', {
               p_user_id: currentUser.id,
@@ -567,7 +691,7 @@
             throw balanceError
           }
           log('Balance updated')
-
+ 
           // Update local state
           currentBalance = newBalance
           
@@ -591,7 +715,7 @@
             await loadBalance(currentUser.id)
             renderBalancePage()
           }, 1000)
-
+ 
         } catch (error) {
           log(`Error: ${error.message}`)
           showMessage('Failed to process deposit. Please try again.', 'error')
@@ -601,7 +725,7 @@
           depositBtn.textContent = 'Add Funds'
         }
       })
-
+ 
       function showMessage(text, type) {
         log(`Message: ${text}`)
         messageDiv.textContent = text
@@ -609,7 +733,7 @@
         messageDiv.style.display = 'block'
       }
     }
-
+ 
     checkAuth()
   </script>
 </body>
