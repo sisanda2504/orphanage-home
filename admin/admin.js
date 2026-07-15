@@ -327,22 +327,81 @@ const Charts = {
 /* ===== VOLUNTEERS ===== */
 const Volunteers = {
   KEY: 'hh_volunteers',
+  _dbRows: [],
+  _localRows: [],
+  _ready: false,
+
   init() {
-    this.render();
+    const existing = Store.get(this.KEY, []);
+    this._localRows = existing.filter(v => v._source === 'local');
     document.getElementById('add-volunteer-btn').addEventListener('click', () => this.openForm());
     document.getElementById('vol-search').addEventListener('input', () => this.render());
     document.getElementById('vol-filter').addEventListener('change', () => this.render());
+    this.render();
+    this.loadFromDB();
   },
-  all()  { return Store.get(this.KEY, []); },
-  save(list) { Store.set(this.KEY, list); Stats.update(); Charts.renderVolunteer(); },
+
+  async loadFromDB() {
+    try {
+      Loading.show();
+      const { data, error } = await DB
+        .from('users')
+        .select('id, display_name, email, volunteer, volunteer_role, created_at')
+        .eq('volunteer', 'Y')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      this._dbRows = (data || []).map(v => ({
+        id:           v.id,
+        user_id:      v.id,
+        name:         v.display_name || v.email,
+        email:        v.email || '',
+        phone:        '—',
+        activity:     v.volunteer_role || '—',
+        skills:       v.volunteer_role || '—',
+        availability: '—',
+        status:       'Pending',
+        date:         v.created_at,
+        _source:      'db'
+      }));
+    } catch (err) {
+      console.error('Volunteers DB error:', err);
+      Toast.show('Could not load volunteers from database: ' + err.message, 'error');
+    } finally {
+      Loading.hide();
+    }
+    this._ready = true;
+    this._merged = [...this._dbRows, ...this._localRows];
+    this.render();
+    Stats.update();
+    Charts.renderVolunteer();
+  },
+
+  all() {
+    if (!this._ready) return this._localRows;
+    return this._merged || [];
+  },
+
+  save(list) {
+    const local = list.filter(v => v._source !== 'db');
+    Store.set(this.KEY, local);
+    this._localRows = local;
+    this._merged = [...this._dbRows, ...local];
+    Stats.update();
+    Charts.renderVolunteer();
+  },
+
   render() {
     const q      = document.getElementById('vol-search').value.toLowerCase();
     const filter = document.getElementById('vol-filter').value;
-    let list = this.all().filter(v =>
-      (!q || `${v.name} ${v.email} ${v.skills}`.toLowerCase().includes(q)) &&
+    const list = this.all().filter(v =>
+      (!q || `${v.name} ${v.email} ${v.activity || v.skills}`.toLowerCase().includes(q)) &&
       (!filter || v.status === filter)
     );
     const tbody = document.getElementById('vol-tbody');
+    if (!this._ready) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="7" style="text-align:center;padding:32px;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:8px"></i>Loading volunteers…</td></tr>`;
+      return;
+    }
     if (!list.length) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No volunteers found.</td></tr>`; return;
     }
@@ -351,26 +410,59 @@ const Volunteers = {
         <td>${esc(v.name)}</td>
         <td>${esc(v.email)}</td>
         <td>${esc(v.phone || '—')}</td>
-        <td>${esc(v.skills || '—')}</td>
+        <td>${esc(v.activity || v.skills || '—')}</td>
         <td>${esc(v.availability || '—')}</td>
         <td><span class="status-badge status-${v.status.toLowerCase()}">${v.status}</span></td>
         <td class="action-btns">
-          <button class="act-btn act-view"    onclick="Volunteers.view(${v.id})"><i class="fa-solid fa-eye"></i> View</button>
-          <button class="act-btn act-approve" onclick="Volunteers.setStatus(${v.id},'Approved')"><i class="fa-solid fa-check"></i></button>
-          <button class="act-btn act-reject"  onclick="Volunteers.setStatus(${v.id},'Rejected')"><i class="fa-solid fa-xmark"></i></button>
-          <button class="act-btn act-delete"  onclick="Volunteers.delete(${v.id})"><i class="fa-solid fa-trash"></i></button>
+          <button class="act-btn act-view"    onclick="Volunteers.view('${v.id}')"><i class="fa-solid fa-eye"></i> View</button>
+          <button class="act-btn act-approve" onclick="Volunteers.setStatus('${v.id}','Approved')"><i class="fa-solid fa-check"></i></button>
+          <button class="act-btn act-reject"  onclick="Volunteers.setStatus('${v.id}','Rejected')"><i class="fa-solid fa-xmark"></i></button>
+          <button class="act-btn act-delete"  onclick="Volunteers.delete('${v.id}')"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`).join('');
   },
+
+  async setStatus(id, status) {
+    const v = this.all().find(v => String(v.id) === String(id));
+    if (!v) return;
+    if (v._source === 'db') {
+      // status is not stored in users table — only track locally
+      Toast.show('Status tracking is local only for user-based volunteers.', 'info');
+    }
+    const list = this._localRows;
+    const item = list.find(x => String(x.id) === String(id));
+    if (item) { item.status = status; this.save(list); this.render(); }
+    Activity.add(status === 'Approved' ? 'fa-check' : 'fa-xmark', `Volunteer ${v.name} ${status.toLowerCase()}.`);
+    Toast.show(`Volunteer ${status.toLowerCase()}.`, status === 'Approved' ? 'success' : 'warning');
+  },
+
+  async delete(id) {
+    if (!confirm('Delete this volunteer?')) return;
+    const v = this.all().find(v => String(v.id) === String(id));
+    if (v && v._source === 'db') {
+      const { error } = await DB.from('users').update({ volunteer: 'N', volunteer_role: null }).eq('id', id);
+      if (error) { Toast.show('Failed to remove volunteer: ' + error.message, 'error'); return; }
+      await this.loadFromDB();
+    } else {
+      const list = this._localRows.filter(v => String(v.id) !== String(id));
+      this.save(list); this.render();
+    }
+    Toast.show('Volunteer removed.', 'success');
+  },
+
   openForm(vol = null) {
     const isEdit = !!vol;
     Modal.open(isEdit ? 'Edit Volunteer' : 'Add Volunteer',
       `<div class="form-group"><label>Full Name</label><input id="vf-name" value="${esc(vol?.name||'')}" placeholder="Jane Doe" /></div>
        <div class="form-row">
          <div class="form-group"><label>Email</label><input id="vf-email" type="email" value="${esc(vol?.email||'')}" placeholder="jane@email.com" /></div>
-         <div class="form-group"><label>Phone</label><input id="vf-phone" value="${esc(vol?.phone||'')}" placeholder="+1 555 0000" /></div>
+         <div class="form-group"><label>Phone</label><input id="vf-phone" value="${esc(vol?.phone||'')}" placeholder="+27 60 000 0000" /></div>
        </div>
-       <div class="form-group"><label>Skills</label><input id="vf-skills" value="${esc(vol?.skills||'')}" placeholder="Teaching, First Aid…" /></div>
+       <div class="form-group"><label>Activity</label>
+         <select id="vf-skills">
+           ${['Tutoring','Cleaning','Cooking','Other'].map(s => `<option ${(vol?.activity||vol?.skills||'')===s?'selected':''}>${s}</option>`).join('')}
+         </select>
+       </div>
        <div class="form-row">
          <div class="form-group"><label>Availability</label><input id="vf-avail" value="${esc(vol?.availability||'')}" placeholder="Weekends" /></div>
          <div class="form-group"><label>Status</label>
@@ -380,66 +472,55 @@ const Volunteers = {
          </div>
        </div>`,
       `<button class="btn-cancel" onclick="Modal.close()">Cancel</button>
-       <button class="btn-primary" onclick="Volunteers.save_form(${vol?.id||'null'})">
+       <button class="btn-primary" onclick="Volunteers.save_form('${vol?.id||'null'}')">
          <i class="fa-solid fa-floppy-disk"></i> ${isEdit?'Update':'Add'}
        </button>`
     );
   },
+
   save_form(id) {
     const name  = document.getElementById('vf-name').value.trim();
     const email = document.getElementById('vf-email').value.trim();
     if (!name || !email) { Toast.show('Name and email are required.','error'); return; }
-    const list = this.all();
+    const list = [...this._localRows];
     const data = {
       name, email,
       phone:        document.getElementById('vf-phone').value.trim(),
-      skills:       document.getElementById('vf-skills').value.trim(),
+      activity:     document.getElementById('vf-skills').value,
+      skills:       document.getElementById('vf-skills').value,
       availability: document.getElementById('vf-avail').value.trim(),
       status:       document.getElementById('vf-status').value,
-      date:         new Date().toISOString()
+      date:         new Date().toISOString(),
+      _source:      'local'
     };
-    if (id) {
-      const i = list.findIndex(v => v.id === id);
+    if (id && id !== 'null') {
+      const i = list.findIndex(v => String(v.id) === String(id));
       if (i > -1) list[i] = { ...list[i], ...data };
       Toast.show('Volunteer updated.','success');
     } else {
-      data.id = Store.nextId(list);
+      data.id = 'local_' + Store.nextId(list);
       list.push(data);
-      Activity.add('fa-user-plus', `New volunteer registered: ${name}`);
+      Activity.add('fa-user-plus', `New volunteer added: ${name}`);
       Notifs.add('fa-user-plus', `New volunteer: ${name}`);
       Toast.show('Volunteer added.','success');
     }
     this.save(list); Modal.close(); this.render();
   },
-  setStatus(id, status) {
-    const list = this.all();
-    const v = list.find(v => v.id === id);
-    if (!v) return;
-    v.status = status;
-    this.save(list);
-    Activity.add(status==='Approved'?'fa-check':'fa-xmark', `Volunteer ${v.name} ${status.toLowerCase()}.`);
-    Toast.show(`Volunteer ${status.toLowerCase()}.`, status==='Approved'?'success':'warning');
-    this.render();
-  },
-  delete(id) {
-    if (!confirm('Delete this volunteer?')) return;
-    const list = this.all().filter(v => v.id !== id);
-    this.save(list); this.render();
-    Toast.show('Volunteer deleted.','success');
-  },
+
   view(id) {
-    const v = this.all().find(v => v.id === id);
+    const v = this.all().find(v => String(v.id) === String(id));
     if (!v) return;
     Modal.open('Volunteer Details',
       `<div class="detail-grid">
         <div class="detail-item"><span class="label">Name</span><span class="value">${esc(v.name)}</span></div>
         <div class="detail-item"><span class="label">Email</span><span class="value">${esc(v.email)}</span></div>
         <div class="detail-item"><span class="label">Phone</span><span class="value">${esc(v.phone||'—')}</span></div>
-        <div class="detail-item"><span class="label">Skills</span><span class="value">${esc(v.skills||'—')}</span></div>
+        <div class="detail-item"><span class="label">Activity</span><span class="value">${esc(v.activity||v.skills||'—')}</span></div>
         <div class="detail-item"><span class="label">Availability</span><span class="value">${esc(v.availability||'—')}</span></div>
         <div class="detail-item"><span class="label">Status</span><span class="value"><span class="status-badge status-${v.status.toLowerCase()}">${v.status}</span></span></div>
+        <div class="detail-item"><span class="label">Source</span><span class="value">${v._source === 'db' ? '🌐 Online (Supabase)' : '📝 Manually added'}</span></div>
        </div>`,
-      `<button class="btn-primary" onclick="Volunteers.openForm(Volunteers.all().find(x=>x.id===${id}));"><i class="fa-solid fa-pen"></i> Edit</button>`
+      `<button class="btn-primary" onclick="Volunteers.openForm(Volunteers.all().find(x=>String(x.id)==='${id}'))"><i class="fa-solid fa-pen"></i> Edit</button>`
     );
   }
 };
