@@ -1,0 +1,304 @@
+﻿/* Events Calendar Stylesheet */
+
+.events-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.events-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+.events-header h1 {
+  font-size: 2.8rem;
+  color: #0f172a;
+  margin: 12px 0 16px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.events-header p {
+  font-size: 1.15rem;
+  color: #64748b;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Countdown Banner */
+.countdown-banner {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 28px 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 32px;
+  color: #ffffff;
+  margin-bottom: 40px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+}
+.countdown-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #f97316;
+}
+.countdown-timer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.timer-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  border-radius: 8px;
+  min-width: 65px;
+}
+.timer-unit strong {
+  font-size: 1.6rem;
+  color: #ffffff;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.countdown-event {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  text-align: right;
+  max-width: 320px;
+}
+
+/* Feedback alert box */
+.event-feedback-msg {
+  padding: 14px 20px;
+  border-radius: 12px;
+  margin-bottom: 28px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: none;
+  animation: slideDown 0.3s ease;
+}
+.event-feedback-msg.success {
+  display: block;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.event-feedback-msg.error {
+  display: block;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Event Grid */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+}
+
+/* Event Card */
+.event-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+.event-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Themed header bands instead of raw images */
+.event-banner {
+  height: 120px;
+  padding: 20px;
+  display: flex;
+  align-items: flex-end;
+  color: #ffffff;
+}
+.event-banner.food-drive { background: linear-gradient(135deg, #f97316, #ea580c); }
+.event-banner.career-day { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.event-banner.birthday { background: linear-gradient(135deg, #ec4899, #be185d); }
+.event-banner.sports-day { background: linear-gradient(135deg, #10b981, #047857); }
+.event-banner.dinner { background: linear-gradient(135deg, #8b5cf6, #5b21b6); }
+
+.event-banner h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  margin: 0;
+}
+
+.event-details {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.event-meta-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+/* Calendar icon block */
+.event-calendar-badge {
+  background: #f1f5f9;
+  border-radius: 8px;
+  width: 50px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+}
+.badge-month {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #f97316;
+  margin-bottom: 1px;
+}
+.badge-day {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.event-info-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.meta-loc {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+}
+.meta-date {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.event-desc {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 24px;
+  flex-grow: 1;
+}
+
+/* Attendance bar */
+.event-seats-container {
+  margin-bottom: 20px;
+}
+.event-seats-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.event-seats-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.event-seats-fill {
+  height: 100%;
+  background: #f97316;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* Buttons */
+.event-rsvp-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.rsvp-btn-join {
+  background: #f97316;
+  color: #ffffff;
+}
+.rsvp-btn-join:hover {
+  background: #ea580c;
+}
+.rsvp-btn-cancel {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+.rsvp-btn-cancel:hover {
+  background: #dcfce7;
+}
+.rsvp-btn-full {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+/* Responsive queries */
+@media (max-width: 960px) {
+  .events-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .countdown-banner {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 16px;
+  }
+  .countdown-timer {
+    justify-content: center;
+  }
+  .countdown-event {
+    text-align: center;
+    max-width: 100%;
+  }
+}
+@media (max-width: 600px) {
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
+  .events-header h1 {
+    font-size: 2.2rem;
+  }
+}

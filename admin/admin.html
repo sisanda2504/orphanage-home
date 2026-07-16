@@ -22,6 +22,8 @@
   <script>
     emailjs.init(EMAILJS_CONFIG.publicKey);
   </script>
+  <!-- HTML5 QRCode -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <!-- Dashboard CSS -->
   <link rel="stylesheet" href="admin.css" />
 </head>
@@ -285,7 +287,10 @@
       <section class="section" id="section-events">
         <div class="section-header">
           <h2>Event Management</h2>
-          <button class="btn-primary" id="add-event-btn"><i class="fa-solid fa-plus"></i> Create Event</button>
+          <div style="display:flex; gap:12px;">
+            <button class="btn-primary" id="btn-scan-qr" style="background-color: #10b981;"><i class="fa-solid fa-qrcode"></i> Scan QR (Check-in)</button>
+            <button class="btn-primary" id="add-event-btn"><i class="fa-solid fa-plus"></i> Create Event</button>
+          </div>
         </div>
         <div class="table-toolbar">
           <input type="text" class="table-search" id="evt-search" placeholder="Search events…" />

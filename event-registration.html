@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Registration - Hopeful Hearts</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="event-registration.css" />
+</head>
+<body class="bg-light">
+
+  <div class="registration-container">
+    <div class="registration-header">
+      <a href="events.html" class="back-link">&larr; Back to Events</a>
+      <img src="logo.png" alt="Hopeful Hearts Logo" class="reg-logo" />
+      <h1 id="eventNameTitle">Event Registration</h1>
+      <p id="eventDateSubtitle">Loading event details...</p>
+    </div>
+
+    <form id="registrationForm" class="registration-form">
+      <input type="hidden" id="eventId" />
+      
+      <!-- Section 1: Basic Information -->
+      <div class="form-section">
+        <h2>1. Basic Information</h2>
+        
+        <div class="form-group">
+          <label for="regName">Full Name *</label>
+          <input type="text" id="regName" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="regEmail">Email Address *</label>
+          <input type="email" id="regEmail" required />
+        </div>
+        
+        <div class="form-group">
+          <label for="regPhone">Phone Number</label>
+          <input type="tel" id="regPhone" />
+        </div>
+      </div>
+
+      <!-- Section 2: Attendance Type -->
+      <div class="form-section">
+        <h2>2. Attendance Type</h2>
+        <div class="form-group full-width">
+          <label for="attendanceType">I am registering as a: *</label>
+          <select id="attendanceType" required>
+            <option value="" disabled selected>Select Attendance Type</option>
+            <option value="Volunteer">Volunteer</option>
+            <option value="Guest">Guest</option>
+            <option value="Donor">Donor</option>
+            <option value="Corporate Sponsor">Corporate Sponsor</option>
+            <option value="VIP Guest">VIP Guest</option>
+            <option value="Speaker">Speaker</option>
+            <option value="Performer">Performer</option>
+            <option value="Media">Media</option>
+            <option value="Parent_Guardian">Parent / Guardian</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section 3: Dynamic Fields -->
+      <div class="form-section" id="dynamicFieldsSection" style="display:none;">
+        <h2>3. Additional Details</h2>
+        
+        <!-- Volunteer Fields -->
+        <div id="fieldsVolunteer" class="dynamic-group" style="display:none;">
+          <div class="form-group">
+            <label for="volSkills">Skills / Experience</label>
+            <input type="text" id="volSkills" placeholder="e.g. First Aid, Event Planning" />
+          </div>
+          <div class="form-group">
+            <label for="volAvail">Availability (Time)</label>
+            <input type="text" id="volAvail" placeholder="e.g. Full day, Morning only" />
+          </div>
+          <div class="form-group">
+            <label for="volEmergency">Emergency Contact *</label>
+            <input type="text" id="volEmergency" placeholder="Name and Phone Number" />
+          </div>
+          <div class="form-group">
+            <label for="volTshirt">T-Shirt Size</label>
+            <select id="volTshirt">
+              <option value="">Select Size</option>
+              <option value="S">Small</option>
+              <option value="M">Medium</option>
+              <option value="L">Large</option>
+              <option value="XL">X-Large</option>
+              <option value="XXL">XX-Large</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Corporate Sponsor Fields -->
+        <div id="fieldsCorporate" class="dynamic-group" style="display:none;">
+          <div class="form-group">
+            <label for="corpCompany">Company Name *</label>
+            <input type="text" id="corpCompany" />
+          </div>
+          <div class="form-group">
+            <label for="corpRep">Representative Name</label>
+            <input type="text" id="corpRep" />
+          </div>
+          <div class="form-group">
+            <label for="corpAttendees">Number of Attendees *</label>
+            <input type="number" id="corpAttendees" min="1" value="1" />
+          </div>
+          <div class="form-group">
+            <label>Branding Interest</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="corpBrandBanners" value="Banners"> Banners</label>
+              <label><input type="checkbox" id="corpBrandBooth" value="Booth"> Booth</label>
+              <label><input type="checkbox" id="corpBrandDigital" value="Digital"> Digital/Social Media</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Guest Fields -->
+        <div id="fieldsGuest" class="dynamic-group" style="display:none;">
+          <div class="form-group">
+            <label for="guestCount">Number of Guests *</label>
+            <input type="number" id="guestCount" min="1" value="1" />
+          </div>
+          <div class="form-group">
+            <label for="guestDiet">Dietary Requirements</label>
+            <input type="text" id="guestDiet" placeholder="e.g. Vegetarian, Nut Allergy" />
+          </div>
+          <div class="form-group">
+            <label for="guestAccess">Accessibility Requirements</label>
+            <input type="text" id="guestAccess" placeholder="e.g. Wheelchair access" />
+          </div>
+        </div>
+
+        <!-- Media Fields -->
+        <div id="fieldsMedia" class="dynamic-group" style="display:none;">
+          <div class="form-group">
+            <label for="mediaOrg">Organisation *</label>
+            <input type="text" id="mediaOrg" />
+          </div>
+          <div class="form-group">
+            <label>Roles</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="mediaPhoto" value="Photographer"> Photographer</label>
+              <label><input type="checkbox" id="mediaVideo" value="Videographer"> Videographer</label>
+              <label><input type="checkbox" id="mediaJourno" value="Journalist"> Journalist</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="mediaPressPass">Press Pass Number</label>
+            <input type="text" id="mediaPressPass" />
+          </div>
+        </div>
+        
+        <!-- General Notes -->
+        <div class="form-group full-width">
+          <label for="regNotes">Additional Notes</label>
+          <textarea id="regNotes" rows="3" placeholder="Any other information we should know?"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" id="submitRegBtn" class="btn btn-primary btn-block">Complete Registration</button>
+      </div>
+      <div id="regErrorMsg" class="error-msg"></div>
+    </form>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+  <script type="module" src="event-registration.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Hopeful Hearts N/A Admin Dashboard JS
    ============================================================ */
 
@@ -835,6 +835,9 @@ const Events = {
 
     document.getElementById('add-event-btn').addEventListener('click', () => this.openForm());
     document.getElementById('evt-search').addEventListener('input', () => this.render());
+    
+    const scanBtn = document.getElementById('btn-scan-qr');
+    if (scanBtn) scanBtn.addEventListener('click', () => this.startCheckInScan());
 
     this.render();
     this.loadFromDB();
@@ -854,9 +857,19 @@ const Events = {
         name: e.name,
         description: e.description,
         date: e.date,
+        time: e.time,
         location: e.location,
-        maxAttendees: e.max_attendees,
+        venue_name: e.venue_name,
+        latitude: e.latitude,
+        longitude: e.longitude,
+        category: e.category,
+        capacity: e.capacity,
         registered: e.registered,
+        is_registration_open: e.is_registration_open,
+        registration_deadline: e.registration_deadline,
+        donation_goal: e.donation_goal,
+        volunteer_requirements: e.volunteer_requirements,
+        image_url: e.image_url,
         _source: 'db'
       }));
     } catch (err) {
@@ -901,8 +914,8 @@ const Events = {
         <td><strong>${esc(e.name)}</strong></td>
         <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-muted);font-size:0.82rem;">${esc(e.description||'N/A')}</td>
         <td>${e.date ? new Date(e.date).toLocaleDateString() : 'N/A'}</td>
-        <td>${esc(e.location||'N/A')}</td>
-        <td>${e.maxAttendees||100}</td>
+        <td>${esc(e.venue_name||e.location||'N/A')}</td>
+        <td>${e.capacity||100}</td>
         <td>${e.registered||0}</td>
         <td class="action-btns">
           <button class="act-btn act-view"   onclick="Events.view('${e.id}')"><i class="fa-solid fa-eye"></i> View</button>
@@ -915,13 +928,39 @@ const Events = {
   openForm(ev = null) {
     const isEdit = !!ev;
     Modal.open(isEdit ? 'Edit Event' : 'Create Event',
-      `<div class="form-group"><label>Event Name</label><input id="ef-name" value="${esc(ev?.name||'')}" placeholder="Annual Gala" /></div>
-       <div class="form-group"><label>Description</label><textarea id="ef-desc" placeholder="What's this event about?">${esc(ev?.description||'')}</textarea></div>
-       <div class="form-row">
-         <div class="form-group"><label>Date</label><input id="ef-date" type="date" value="${ev?.date ? ev.date.slice(0,10) : ''}" /></div>
-         <div class="form-group"><label>Location</label><input id="ef-loc" value="${esc(ev?.location||'')}" placeholder="City Hall" /></div>
+      `<div class="form-row">
+         <div class="form-group"><label>Event Name *</label><input id="ef-name" value="${esc(ev?.name||'')}" /></div>
+         <div class="form-group"><label>Category</label>
+           <select id="ef-category">
+             ${['General','Fundraiser','Volunteer','Social','Workshop'].map(c=>`<option ${(ev?.category||'')===c?'selected':''}>${c}</option>`).join('')}
+           </select>
+         </div>
        </div>
-       <div class="form-group"><label>Max Attendees</label><input id="ef-max" type="number" min="1" value="${ev?.maxAttendees||''}" placeholder="100" /></div>`,
+       <div class="form-row">
+         <div class="form-group"><label>Date *</label><input id="ef-date" type="date" value="${ev?.date ? ev.date.slice(0,10) : ''}" /></div>
+         <div class="form-group"><label>Time</label><input id="ef-time" type="time" value="${ev?.time||''}" /></div>
+       </div>
+       <div class="form-row">
+         <div class="form-group"><label>Venue Name</label><input id="ef-venue" value="${esc(ev?.venue_name||ev?.location||'')}" /></div>
+         <div class="form-group"><label>Image URL</label><input id="ef-image" value="${esc(ev?.image_url||'')}" /></div>
+       </div>
+       <div class="form-row">
+         <div class="form-group"><label>Latitude</label><input id="ef-lat" type="number" step="any" value="${ev?.latitude||''}" /></div>
+         <div class="form-group"><label>Longitude</label><input id="ef-lng" type="number" step="any" value="${ev?.longitude||''}" /></div>
+       </div>
+       <div class="form-row">
+         <div class="form-group"><label>Capacity *</label><input id="ef-cap" type="number" min="1" value="${ev?.capacity||ev?.maxAttendees||100}" /></div>
+         <div class="form-group"><label>Deadline</label><input id="ef-deadline" type="date" value="${ev?.registration_deadline ? ev.registration_deadline.slice(0,10) : ''}" /></div>
+       </div>
+       <div class="form-row">
+         <div class="form-group"><label>Donation Goal (R)</label><input id="ef-goal" type="number" step="any" value="${ev?.donation_goal||''}" /></div>
+         <div class="form-group"><label>Volunteer Requirements</label><input id="ef-volreq" value="${esc(ev?.volunteer_requirements||'')}" /></div>
+       </div>
+       <div class="form-group"><label>Description</label><textarea id="ef-desc">${esc(ev?.description||'')}</textarea></div>
+       <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+         <input type="checkbox" id="ef-open" style="width:20px;height:20px;" ${(ev?.is_registration_open !== false)?'checked':''} />
+         <label for="ef-open" style="margin:0;">Registration Open</label>
+       </div>`,
       `<button class="btn-cancel" onclick="Modal.close()">Cancel</button>
        <button class="btn-primary" onclick="Events.save_form('${ev?.id||'null'}')">
          <i class="fa-solid fa-floppy-disk"></i> ${isEdit?'Update':'Create'}
@@ -933,10 +972,31 @@ const Events = {
     const name = document.getElementById('ef-name').value.trim();
     if (!name) { Toast.show('Event name is required.','error'); return; }
     
-    const description = document.getElementById('ef-desc').value.trim();
     const date = document.getElementById('ef-date').value;
-    const location = document.getElementById('ef-loc').value.trim();
-    const maxAttendees = parseInt(document.getElementById('ef-max').value) || 100;
+    if (!date) { Toast.show('Date is required.','error'); return; }
+
+    const dataObj = {
+      name,
+      description: document.getElementById('ef-desc').value.trim(),
+      date,
+      time: document.getElementById('ef-time').value || null,
+      venue_name: document.getElementById('ef-venue').value.trim(),
+      category: document.getElementById('ef-category').value,
+      image_url: document.getElementById('ef-image').value.trim(),
+      capacity: parseInt(document.getElementById('ef-cap').value) || 100,
+      is_registration_open: document.getElementById('ef-open').checked
+    };
+
+    const lat = document.getElementById('ef-lat').value;
+    if (lat) dataObj.latitude = parseFloat(lat);
+    const lng = document.getElementById('ef-lng').value;
+    if (lng) dataObj.longitude = parseFloat(lng);
+    const deadline = document.getElementById('ef-deadline').value;
+    if (deadline) dataObj.registration_deadline = deadline;
+    const goal = document.getElementById('ef-goal').value;
+    if (goal) dataObj.donation_goal = parseFloat(goal);
+    const volreq = document.getElementById('ef-volreq').value.trim();
+    if (volreq) dataObj.volunteer_requirements = volreq;
     
     const editingEvent = id !== 'null' ? this.all().find(e => String(e.id) === String(id)) : null;
     
@@ -945,13 +1005,7 @@ const Events = {
         Loading.show();
         const { error } = await DB
           .from('events')
-          .update({
-            name,
-            description,
-            date,
-            location,
-            max_attendees: maxAttendees
-          })
+          .update(dataObj)
           .eq('id', id);
         
         if (error) throw error;
@@ -970,16 +1024,10 @@ const Events = {
     if (id === 'null' && this._ready) {
       try {
         Loading.show();
+        dataObj.registered = 0;
         const { error } = await DB
           .from('events')
-          .insert({
-            name,
-            description,
-            date,
-            location,
-            max_attendees: maxAttendees,
-            registered: 0
-          });
+          .insert(dataObj);
         
         if (!error) {
           Toast.show('Event created in Database.', 'success');
@@ -987,32 +1035,28 @@ const Events = {
           await this.loadFromDB();
           return;
         }
-        console.warn('Fallback to local event creation due to DB error:', error);
+        console.error('DB Insert Error:', error);
+        Toast.show('Failed to create event in database: ' + error.message, 'error');
       } catch (err) {
-        console.warn('Fallback to local event creation:', err);
+        console.error(err);
+        Toast.show('Failed to create event in database: ' + err.message, 'error');
       } finally {
         Loading.hide();
       }
+      return; // Do not fallback to local storage
     }
 
     const list = [...this._localRows];
-    const data = {
-      name,
-      description,
-      date,
-      location,
-      maxAttendees,
-      _source: 'local'
-    };
+    const localData = { ...dataObj, _source: 'local' };
 
     if (editingEvent) {
       const i = list.findIndex(e => String(e.id) === String(id));
-      if (i > -1) list[i] = { ...list[i], ...data };
+      if (i > -1) list[i] = { ...list[i], ...localData };
       Toast.show('Local event updated.','success');
     } else {
-      data.id = 'local_' + Store.nextId(list); 
-      data.registered = 0;
-      list.push(data);
+      localData.id = 'local_' + Store.nextId(list); 
+      localData.registered = 0;
+      list.push(localData);
       Activity.add('fa-calendar-plus', `Event created: ${name}`);
       Toast.show('Local event created.','success');
     }
@@ -1056,18 +1100,18 @@ const Events = {
     const e = this.all().find(x => String(x.id) === String(id));
     if (!e) return;
 
-    Modal.open('Event Details & RSVPs',
+    Modal.open('Event Details & Registrations',
       `<div class="detail-grid">
         <div class="detail-item"><span class="label">Event Name</span><span class="value"><strong>${esc(e.name)}</strong></span></div>
         <div class="detail-item"><span class="label">Date</span><span class="value">${e.date ? new Date(e.date).toLocaleDateString() : 'N/A'}</span></div>
-        <div class="detail-item"><span class="label">Location</span><span class="value">${esc(e.location||'N/A')}</span></div>
-        <div class="detail-item"><span class="label">Spots Filled</span><span class="value">${e.registered||0} / ${(e.maxAttendees || e.max_attendees || 100)}</span></div>
+        <div class="detail-item"><span class="label">Location</span><span class="value">${esc(e.venue_name||e.location||'N/A')}</span></div>
+        <div class="detail-item"><span class="label">Registration</span><span class="value">${e.registered||0} / ${e.capacity||100}</span></div>
         <div class="detail-item detail-message"><span class="label">Description</span><span class="value">${esc(e.description||'N/A')}</span></div>
        </div>
        <div style="margin-top:20px;">
-         <h4 style="font-size:0.95rem;border-bottom:1px solid var(--border-color, #e2e8f0);padding-bottom:8px;margin-bottom:10px;"><i class="fa-solid fa-users"></i> Registered RSVPs</h4>
-         <ul id="event-rsvp-list" style="list-style:none;max-height:150px;overflow-y:auto;font-size:0.85rem;display:grid;gap:6px;padding:0;">
-           <li>Loading RSVPs...</li>
+         <h4 style="font-size:0.95rem;border-bottom:1px solid var(--border-color, #e2e8f0);padding-bottom:8px;margin-bottom:10px;"><i class="fa-solid fa-users"></i> Registrations</h4>
+         <ul id="event-rsvp-list" style="list-style:none;max-height:250px;overflow-y:auto;font-size:0.85rem;display:grid;gap:6px;padding:0;">
+           <li>Loading registrations...</li>
          </ul>
        </div>`, '');
 
@@ -1075,29 +1119,110 @@ const Events = {
     if (e._source === 'db') {
       try {
         const { data, error } = await DB
-          .from('event_rsvps')
-          .select('user_name, user_email, created_at')
-          .eq('event_id', id);
+          .from('event_registrations')
+          .select('*')
+          .eq('event_id', id)
+          .order('registration_date', { ascending: false });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
           listEl.innerHTML = data.map(r => 
-            `<li style="background:rgba(0,0,0,0.02);padding:6px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
-              <span><strong>${esc(r.user_name || 'Supporter')}</strong> (${esc(r.user_email)})</span>
-              <span style="font-size:0.75rem;color:var(--text-muted, #64748b);">${new Date(r.created_at).toLocaleDateString()}</span>
+            `<li style="background:rgba(0,0,0,0.02);padding:8px 12px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <strong>${esc(r.name)}</strong> <span style="color:#64748b;">(${esc(r.attendance_type)})</span>
+                <div style="font-size:0.75rem;color:#94a3b8;">${esc(r.email)}</div>
+              </div>
+              <div style="text-align:right;">
+                <span class="status-badge status-${r.checked_in ? 'completed' : 'pending'}">${r.checked_in ? 'Checked In' : 'Pending'}</span>
+                <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">#${String(r.id).padStart(5, '0')}</div>
+              </div>
             </li>`
           ).join('');
         } else {
-          listEl.innerHTML = '<li style="color:var(--text-muted, #64748b);font-style:italic;">No online RSVPs yet.</li>';
+          listEl.innerHTML = '<li style="color:var(--text-muted, #64748b);font-style:italic;">No registrations yet.</li>';
         }
       } catch (err) {
         console.warn(err);
-        listEl.innerHTML = '<li style="color:#ef4444;">Failed to load RSVPs from database.</li>';
+        listEl.innerHTML = '<li style="color:#ef4444;">Failed to load registrations from database.</li>';
       }
     } else {
-      listEl.innerHTML = '<li style="color:var(--text-muted, #64748b);font-style:italic;">Offline event. RSVPs are stored in user sessions.</li>';
+      listEl.innerHTML = '<li style="color:var(--text-muted, #64748b);font-style:italic;">Offline event.</li>';
     }
+  },
+
+  startCheckInScan() {
+    Modal.open('Scan Ticket QR Code', 
+      `<div id="qr-reader" style="width:100%; max-width:400px; margin: 0 auto;"></div>
+       <div id="qr-reader-results" style="margin-top:20px; text-align:center; font-weight:600;"></div>`, 
+      `<button class="btn-cancel" onclick="Events.stopScan()">Close Scanner</button>`
+    );
+    
+    setTimeout(() => {
+      if (typeof Html5QrcodeScanner !== 'undefined') {
+        this.html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+        this.html5QrcodeScanner.render(this.onScanSuccess.bind(this), this.onScanFailure.bind(this));
+      } else {
+        document.getElementById('qr-reader-results').innerHTML = '<span style="color:red;">QR Scanner library not loaded.</span>';
+      }
+    }, 200);
+  },
+
+  stopScan() {
+    if (this.html5QrcodeScanner) {
+      this.html5QrcodeScanner.clear().catch(error => console.error("Failed to clear html5QrcodeScanner. ", error));
+    }
+    Modal.close();
+  },
+
+  async onScanSuccess(decodedText, decodedResult) {
+    // Prevent multiple scans
+    if (this.isScanningProc) return;
+    this.isScanningProc = true;
+    
+    try {
+      const data = JSON.parse(decodedText);
+      if (data.reg_id && data.qr_code_id) {
+        document.getElementById('qr-reader-results').innerHTML = `<span style="color:#3b82f6;">Processing Registration #${data.reg_id}...</span>`;
+        
+        // Verify and update in DB
+        const { data: reg, error: fetchErr } = await DB
+          .from('event_registrations')
+          .select('*, events(name)')
+          .eq('id', data.reg_id)
+          .eq('qr_code_id', data.qr_code_id)
+          .single();
+          
+        if (fetchErr || !reg) {
+          document.getElementById('qr-reader-results').innerHTML = `<span style="color:#ef4444;"><i class="fa-solid fa-xmark"></i> Invalid Ticket!</span>`;
+        } else if (reg.checked_in) {
+          document.getElementById('qr-reader-results').innerHTML = `<span style="color:#f59e0b;"><i class="fa-solid fa-triangle-exclamation"></i> Already Checked In at ${new Date(reg.arrival_time).toLocaleTimeString()}</span>`;
+        } else {
+          // Check in
+          const { error: updErr } = await DB
+            .from('event_registrations')
+            .update({ checked_in: true, arrival_time: new Date().toISOString() })
+            .eq('id', data.reg_id);
+            
+          if (updErr) throw updErr;
+          
+          document.getElementById('qr-reader-results').innerHTML = `<span style="color:#10b981;"><i class="fa-solid fa-check"></i> Success! ${reg.name} checked in for ${reg.events.name}.</span>`;
+          Activity.add('fa-qrcode', `${reg.name} checked into ${reg.events.name}`);
+        }
+      } else {
+        document.getElementById('qr-reader-results').innerHTML = `<span style="color:#ef4444;">Unrecognized QR Code format.</span>`;
+      }
+    } catch (e) {
+      console.warn("Scan parse error", e);
+      document.getElementById('qr-reader-results').innerHTML = `<span style="color:#ef4444;">Invalid QR Code.</span>`;
+    }
+    
+    // reset lock after 3 seconds
+    setTimeout(() => { this.isScanningProc = false; }, 3000);
+  },
+
+  onScanFailure(error) {
+    // ignore
   }
 };;
 
