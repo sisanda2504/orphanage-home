@@ -1,241 +1,118 @@
-/* Events Calendar JavaScript Logic */
-
 import { supabase } from './supabase-config.js';
 
-// Fallback Default Events (relative to current date so countdown always works)
-const getFallbackEvents = () => {
-  const now = new Date();
-  return [
-    {
-      id: 101,
-      name: "Food Drive",
-      description: "Help pack and sort donated food items and pantry supplies for distribution to local shelters and families in need.",
-      date: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 4 days from now
-      location: "Hopeful Hearts Community Center",
-      max_attendees: 50,
-      registered: 18
-    },
-    {
-      id: 102,
-      name: "Career Day",
-      description: "Inspire our youth! Share your career journey, answer questions, and mentor our high-school age teenagers.",
-      date: new Date(now.getTime() + 9 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 9 days from now
-      location: "Main Assembly Hall",
-      max_attendees: 30,
-      registered: 29
-    },
-    {
-      id: 103,
-      name: "Birthday Celebrations",
-      description: "Let's celebrate the birthdays of all our children born this month with cake, balloons, games, and gift-giving!",
-      date: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 15 days from now
-      location: "Recreational Playroom",
-      max_attendees: 60,
-      registered: 45
-    },
-    {
-      id: 104,
-      name: "Sports Day",
-      description: "A fun-filled day of track races, soccer tournaments, tug-of-war, and team-building games with the children.",
-      date: new Date(now.getTime() + 22 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 22 days from now
-      location: "Hope Sports Field",
-      max_attendees: 100,
-      registered: 76
-    },
-    {
-      id: 105,
-      name: "Fundraising Dinner",
-      description: "An elegant charity dinner and silent auction. Hear speeches highlighting our achievements. All proceeds fund children care.",
-      date: new Date(now.getTime() + 32 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), // 32 days from now
-      location: "The Grand Dining Hall",
-      max_attendees: 80,
-      registered: 35
-    }
-  ];
-};
+let allEvents = [];
+let filteredEvents = [];
+let eventMap = null;
 
-let eventsList = [];
-let userRsvps = []; // List of event IDs that the user has RSVP'd to
-let currentUser = null;
-let isLocalMode = false;
-let countdownInterval = null;
+async function init() {
+  await checkAuth();
 
-// DOM elements
-const eventsGrid = document.getElementById("eventsGrid");
-const eventMessage = document.getElementById("eventMessage");
-const countdownBanner = document.getElementById("countdownBanner");
-const countdownTimer = document.getElementById("countdownTimer");
-const countdownEventName = document.getElementById("countdownEventName");
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: true });
 
-// Check Authentication and load page data
-async function initEventsPage() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    currentUser = user;
-  } catch (err) {
-    console.warn("Auth check failed, operating in offline mode:", err);
-  }
-
-  await loadEventsData();
-  renderEvents();
-  startCountdown();
-}
-
-// Load events and RSVPs (Database with localStorage fallback)
-async function loadEventsData() {
-  // 1. Load Events
-  try {
-    const { data: dbEvents, error: dbError } = await supabase
-      .from('events')
-      .select('*')
-      .order('date', { ascending: true });
-
-    if (dbError) throw dbError;
-
-    if (dbEvents && dbEvents.length > 0) {
-      eventsList = dbEvents.map(e => ({
-        id: e.id,
-        name: e.name,
-        description: e.description,
-        date: e.date,
-        location: e.location,
-        max_attendees: e.max_attendees,
-        registered: e.registered
-      }));
-      isLocalMode = false;
-    } else {
-      // Empty table, load from seed / local
-      loadFallbackEvents();
-    }
-  } catch (err) {
-    console.warn("Supabase events table query failed. Falling back to local/localStorage storage:", err.message);
-    isLocalMode = true;
-    loadFallbackEvents();
-  }
-
-  // 2. Load RSVPs
-  if (currentUser) {
-    if (!isLocalMode) {
-      try {
-        const { data: dbRsvps, error: rsvpError } = await supabase
-          .from('event_rsvps')
-          .select('event_id')
-          .eq('user_id', currentUser.id);
-
-        if (rsvpError) throw rsvpError;
-        userRsvps = (dbRsvps || []).map(r => r.event_id);
-      } catch (err) {
-        console.warn("Supabase RSVPs query failed, falling back to local storage RSVPs:", err);
-        loadLocalRsvps();
-      }
-    } else {
-      loadLocalRsvps();
-    }
-  }
-}
-
-// Load fallback events from localStorage/Seed
-function loadFallbackEvents() {
-  let localEvents = localStorage.getItem("hh_events");
-  if (localEvents) {
-    try {
-      eventsList = JSON.parse(localEvents);
-      // Map keys from admin dashboard: admin dashboard uses camelCase maxAttendees, public html uses snake_case max_attendees
-      eventsList = eventsList.map(e => ({
-        id: e.id,
-        name: e.name,
-        description: e.description || e.description,
-        date: e.date,
-        location: e.location,
-        max_attendees: e.maxAttendees !== undefined ? e.maxAttendees : (e.max_attendees || 100),
-        registered: e.registered || 0
-      }));
-    } catch {
-      eventsList = getFallbackEvents();
-    }
-  } else {
-    eventsList = getFallbackEvents();
-    localStorage.setItem("hh_events", JSON.stringify(eventsList));
-  }
-}
-
-// Load user RSVPs from LocalStorage
-function loadLocalRsvps() {
-  const localRsvps = localStorage.getItem(`hh_rsvps_${currentUser.id}`);
-  if (localRsvps) {
-    try {
-      userRsvps = JSON.parse(localRsvps);
-    } catch {
-      userRsvps = [];
-    }
-  } else {
-    userRsvps = [];
-  }
-}
-
-// Save local RSVP state
-function saveLocalRsvps() {
-  localStorage.setItem(`hh_rsvps_${currentUser.id}`, JSON.stringify(userRsvps));
-}
-
-// Save local Events state (bridges public calendar & admin local dashboard)
-function saveLocalEvents() {
-  const adminFormattedList = eventsList.map(e => ({
-    id: e.id,
-    name: e.name,
-    description: e.description,
-    date: e.date,
-    location: e.location,
-    maxAttendees: e.max_attendees,
-    registered: e.registered
-  }));
-  localStorage.setItem("hh_events", JSON.stringify(adminFormattedList));
-}
-
-// Get themed CSS class based on event name
-function getBannerThemeClass(name) {
-  const lower = name.toLowerCase();
-  if (lower.includes("food")) return "food-drive";
-  if (lower.includes("career") || lower.includes("job")) return "career-day";
-  if (lower.includes("birthday") || lower.includes("party")) return "birthday";
-  if (lower.includes("sport") || lower.includes("game") || lower.includes("day")) return "sports-day";
-  return "dinner";
-}
-
-// Render Event Cards
-function renderEvents() {
-  eventsGrid.innerHTML = "";
-
-  // Filter out events that are older than today (optional, but good practice)
-  const now = new Date();
-  now.setHours(0,0,0,0);
-  
-  const upcomingEvents = eventsList.filter(e => new Date(e.date) >= now);
-
-  if (upcomingEvents.length === 0) {
-    eventsGrid.innerHTML = `<div style="text-align: center; grid-column: 1 / -1; padding: 40px; color: #64748b;">No upcoming events at the moment. Please check back later!</div>`;
+  if (error) {
+    console.error("Failed to load events:", error);
     return;
   }
+  
+  allEvents = data || [];
+  filteredEvents = [...allEvents];
 
-  // Sort upcoming events by date ascending
-  upcomingEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+  // Setup Grid Search/Filter
+  const searchEl = document.getElementById('searchEvent');
+  const catEl = document.getElementById('filterCategory');
+  if (searchEl) searchEl.addEventListener('input', updateGridFilters);
+  if (catEl) catEl.addEventListener('change', updateGridFilters);
 
-  upcomingEvents.forEach(evt => {
-    const isRsvped = userRsvps.includes(evt.id);
-    const spotsLeft = Math.max(0, evt.max_attendees - evt.registered);
-    const fillPercent = Math.min(100, (evt.registered / evt.max_attendees) * 100);
-    const bannerClass = getBannerThemeClass(evt.name);
+  // Global listeners to close dropdowns
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.card-more-btn') && !e.target.closest('.card-dropdown-menu')) {
+      document.querySelectorAll('.card-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.card-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+    }
+  });
 
-    // Format Date elements
-    const evtDate = new Date(evt.date);
-    const month = evtDate.toLocaleString('en-US', { month: 'short' });
-    const day = evtDate.getDate();
+  renderGrid();
+}
 
-    const card = document.createElement("div");
-    card.className = "event-card";
+function updateGridFilters() {
+  const searchTerm = document.getElementById('searchEvent').value.toLowerCase();
+  const category = document.getElementById('filterCategory').value;
+
+  filteredEvents = allEvents.filter(e => {
+    const matchTerm = e.name.toLowerCase().includes(searchTerm) || (e.description || "").toLowerCase().includes(searchTerm);
+    const matchCat = category === "" || e.category === category;
+    return matchTerm && matchCat;
+  });
+
+  renderGrid();
+}
+
+function renderGrid() {
+  const container = document.getElementById('upcomingEventsGrid');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (filteredEvents.length === 0) {
+    container.innerHTML = "<p>No events found.</p>";
+    document.getElementById('globalEventSidebar').style.display = 'none';
+    return;
+  }
+  
+  // Show sidebar for the first event in the list
+  updateSidebar(filteredEvents[0]);
+
+  filteredEvents.forEach(e => {
+    // Generate banner background based on category
+    let bgStyle = "";
+    let bannerContent = ``;
+    const themeClass = e.category ? e.category.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'general';
+
+    if (e.image_url) {
+      bgStyle = `background: linear-gradient(to top, rgba(15,23,42,0.9) 0%, rgba(15,23,42,0) 100%), url('${e.image_url}') center/cover;`;
+      bannerContent = `<h2 style="color:#fff;">${e.name}</h2>`;
+    } else {
+      bgStyle = `background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);`;
+      bannerContent = `<h2 style="color:#fff;">${e.name}</h2>`;
+    }
+
+    const now = new Date();
+    let isClosed = e.is_registration_open === false;
+    if (e.registration_deadline && new Date(e.registration_deadline) < now) isClosed = true;
+    if (e.capacity && (e.registered || 0) >= e.capacity) isClosed = true;
+
+    // Build the date badge
+    const eventDate = new Date(e.date);
+    const month = eventDate.toLocaleString('default', { month: 'short' });
+    const day = eventDate.getDate();
+
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    
     card.innerHTML = `
-      <div class="event-banner ${bannerClass}">
-        <h2>${evt.name}</h2>
+      <div class="event-banner ${themeClass}" style="${bgStyle}">
+        ${bannerContent}
+        <button class="card-more-btn" data-id="${e.id}" aria-label="More options">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+        <div class="card-dropdown-menu" id="dropdown-${e.id}">
+          <button class="dropdown-item btn-add-calendar" data-id="${e.id}"><i class="fa-regular fa-calendar-plus"></i> Add to Calendar</button>
+          <div class="dropdown-submenu" id="submenu-cal-${e.id}">
+            <button class="dropdown-item btn-cal-google" data-id="${e.id}"><i class="fa-brands fa-google"></i> Google Calendar</button>
+            <button class="dropdown-item btn-cal-outlook" data-id="${e.id}"><i class="fa-brands fa-microsoft"></i> Outlook</button>
+            <button class="dropdown-item btn-cal-apple" data-id="${e.id}"><i class="fa-brands fa-apple"></i> Apple Calendar</button>
+            <button class="dropdown-item btn-cal-ics" data-id="${e.id}"><i class="fa-solid fa-file-arrow-down"></i> ICS File</button>
+          </div>
+          <button class="dropdown-item btn-share" data-id="${e.id}"><i class="fa-solid fa-share-nodes"></i> Share</button>
+          <button class="dropdown-item btn-copy-link" data-id="${e.id}"><i class="fa-regular fa-copy"></i> Copy Link</button>
+          <button class="dropdown-item btn-directions" data-id="${e.id}"><i class="fa-solid fa-location-arrow"></i> Directions</button>
+        </div>
       </div>
       <div class="event-details">
         <div class="event-meta-row">
@@ -244,212 +121,202 @@ function renderEvents() {
             <span class="badge-day">${day}</span>
           </div>
           <div class="event-info-meta">
-            <span class="meta-loc">📍 ${evt.location}</span>
-            <span class="meta-date">📅 ${evtDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <span class="meta-loc"><i class="fa-solid fa-location-dot"></i> ${e.venue_name || e.location || 'TBA'}</span>
+            <span class="meta-date"><i class="fa-regular fa-clock"></i> ${e.time || 'TBD'}</span>
           </div>
         </div>
-        <p class="event-desc">${evt.description || 'No description provided.'}</p>
+        
+        <p class="event-desc">${(e.description || '').substring(0, 120)}${(e.description && e.description.length > 120) ? '...' : ''}</p>
         
         <div class="event-seats-container">
           <div class="event-seats-header">
-            <span>Registration Slots</span>
-            <span>${evt.registered} / ${evt.max_attendees} filled</span>
+            <span>${e.registered || 0} / ${e.capacity || 100} Registered</span>
+            <span>${isClosed ? 'Closed' : 'Open'}</span>
           </div>
           <div class="event-seats-bar">
-            <div class="event-seats-fill" style="width: ${fillPercent}%;"></div>
+            <div class="event-seats-fill" style="width: ${Math.min(100, ((e.registered || 0) / (e.capacity || 100)) * 100)}%;"></div>
           </div>
         </div>
-
-        <button class="event-rsvp-btn ${getButtonClass(isRsvped, spotsLeft)}" 
-                id="btn-rsvp-${evt.id}">
-          ${getButtonLabel(isRsvped, spotsLeft)}
+        
+        <button class="event-rsvp-btn ${isClosed ? 'btn-secondary' : 'btn-primary'}" ${isClosed ? 'disabled' : ''} onclick="window.location.href='event-registration.html?id=${e.id}'">
+          ${isClosed ? 'Registration Closed' : 'Register Now'} <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>
     `;
+    container.appendChild(card);
+  });
 
-    eventsGrid.appendChild(card);
+  // Attach dropdown logic
+  attachDropdownLogic();
+}
 
-    // Add click handler
-    document.getElementById(`btn-rsvp-${evt.id}`).addEventListener("click", () => {
-      handleRsvpClick(evt, isRsvped);
+function attachDropdownLogic() {
+  document.querySelectorAll('.card-more-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const menu = document.getElementById(`dropdown-${id}`);
+      
+      // Close others
+      document.querySelectorAll('.card-dropdown-menu.show').forEach(m => {
+        if (m !== menu) m.classList.remove('show');
+      });
+
+      menu.classList.toggle('show');
+    });
+  });
+
+  // Attach Menu Actions
+  document.querySelectorAll('.card-dropdown-menu').forEach(menu => {
+    menu.addEventListener('click', (e) => {
+      const btn = e.target.closest('.dropdown-item');
+      if (!btn) return;
+      
+      const id = btn.getAttribute('data-id');
+      const event = allEvents.find(ev => ev.id == id);
+      if (!event) return;
+
+      const eventUrl = encodeURIComponent(window.location.origin + window.location.pathname.replace('events.html', 'event-registration.html') + `?id=${event.id}`);
+      const eventTitle = encodeURIComponent(event.name);
+      const eventDesc = encodeURIComponent((event.description || "").replace(/\n/g, ' '));
+      const eventLoc = encodeURIComponent(event.venue_name || event.location || "");
+
+      // 1. Add to Calendar
+      if (btn.classList.contains('btn-add-calendar')) {
+        e.stopPropagation(); // keep menu open
+        const submenu = document.getElementById(`submenu-cal-${id}`);
+        submenu.classList.toggle('show');
+        return; 
+      }
+      
+      // 1a. Calendar Options
+      if (btn.classList.contains('btn-cal-google') || btn.classList.contains('btn-cal-outlook') || btn.classList.contains('btn-cal-apple') || btn.classList.contains('btn-cal-ics')) {
+        const d = new Date(event.date + (event.time ? `T${event.time}` : 'T00:00:00'));
+        const dEnd = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+        const formatCalDate = (date) => date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+        const startStr = formatCalDate(d);
+        const endStr = formatCalDate(dEnd);
+
+        if (btn.classList.contains('btn-cal-google')) {
+          window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${startStr}/${endStr}&details=${eventDesc}&location=${eventLoc}`, '_blank');
+        } else if (btn.classList.contains('btn-cal-outlook')) {
+          window.open(`https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&subject=${eventTitle}&startdt=${startStr}&enddt=${endStr}&body=${eventDesc}&location=${eventLoc}`, '_blank');
+        } else {
+          // Apple / ICS
+          const icsContent = `BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:${startStr}\nDTEND:${endStr}\nSUMMARY:${event.name}\nDESCRIPTION:${(event.description || "").replace(/\n/g, '\\n')}\nLOCATION:${event.venue_name || event.location || ""}\nEND:VEVENT\nEND:VCALENDAR`;
+          const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = `${event.name.replace(/\s+/g, '_')}.ics`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      }
+
+      // 2. Share
+      if (btn.classList.contains('btn-share')) {
+        if (navigator.share) {
+          navigator.share({
+            title: event.name,
+            text: `Check out ${event.name} at Hopeful Hearts!`,
+            url: decodeURIComponent(eventUrl)
+          }).catch(console.error);
+        } else {
+          // Fallback share logic
+          window.location.href = `mailto:?subject=${eventTitle}&body=Check out this event at Hopeful Hearts: ${decodeURIComponent(eventUrl)}`;
+        }
+      }
+
+      // 3. Copy Link
+      if (btn.classList.contains('btn-copy-link')) {
+        navigator.clipboard.writeText(decodeURIComponent(eventUrl)).then(() => {
+          const toast = document.getElementById('copyToast');
+          if (toast) {
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+          }
+        });
+      }
+
+      // 4. Directions
+      if (btn.classList.contains('btn-directions')) {
+        updateSidebar(event);
+      }
+
+      // Close menu
+      menu.classList.remove('show');
     });
   });
 }
 
-function getButtonClass(isRsvped, spotsLeft) {
-  if (isRsvped) return "rsvp-btn-cancel";
-  if (spotsLeft <= 0) return "rsvp-btn-full";
-  return "rsvp-btn-join";
-}
+function updateSidebar(event) {
+  const sidebar = document.getElementById('globalEventSidebar');
+  if (!sidebar) return;
+  sidebar.style.display = 'block';
+  
+  // Setup Map
+  const lat = event.latitude || -33.9249; 
+  const lng = event.longitude || 18.4241;
+  const venue = event.venue_name || event.location || "Hopeful Hearts Orphanage";
 
-function getButtonLabel(isRsvped, spotsLeft) {
-  if (isRsvped) return "✓ Booked (Cancel RSVP)";
-  if (spotsLeft <= 0) return "Event Full";
-  return "RSVP Online";
-}
-
-// RSVP Button Actions
-async function handleRsvpClick(event, isRsvped) {
-  // If user is not logged in, prompt sign in
-  if (!currentUser) {
-    const proceed = confirm("Please sign in or create an account to RSVP for Hopeful Hearts events. Click OK to log in.");
-    if (proceed) {
-      window.location.href = "login.html?return=events.html";
-    }
-    return;
+  if (!eventMap) {
+    eventMap = L.map('eventMap').setView([lat, lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(eventMap);
+  } else {
+    eventMap.setView([lat, lng], 14);
+    // Clear previous markers
+    eventMap.eachLayer((layer) => {
+      if (layer instanceof L.Marker) {
+        eventMap.removeLayer(layer);
+      }
+    });
   }
 
-  showMsg("", ""); // Clear message
-  const btn = document.getElementById(`btn-rsvp-${event.id}`);
-  btn.disabled = true;
-  btn.textContent = "Processing...";
+  L.marker([lat, lng]).addTo(eventMap)
+    .bindPopup(`<b>${venue}</b>`)
+    .openPopup();
 
-  try {
-    if (isRsvped) {
-      // 1. Cancel RSVP
-      if (!isLocalMode) {
-        // DB Mode
-        const { error: deleteError } = await supabase
-          .from('event_rsvps')
-          .delete()
-          .eq('event_id', event.id)
-          .eq('user_id', currentUser.id);
+  const googleMapsLink = document.getElementById('googleMapsLink');
+  if (googleMapsLink) {
+    googleMapsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
+}
 
-        if (deleteError) throw deleteError;
+async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const authButtons = document.getElementById('authButtons');
+  const userMenu = document.getElementById('userMenu');
+  const userNameDisplay = document.getElementById('userNameDisplay');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const dashboardLink = document.getElementById('dashboardLink');
 
-        // Decrement registration count on events
-        const { error: updateError } = await supabase
-          .from('events')
-          .update({ registered: Math.max(0, event.registered - 1) })
-          .eq('id', event.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Local Mode
-        const localEvt = eventsList.find(e => e.id === event.id);
-        if (localEvt) {
-          localEvt.registered = Math.max(0, localEvt.registered - 1);
-          saveLocalEvents();
-        }
-      }
-
-      // Update State
-      userRsvps = userRsvps.filter(id => id !== event.id);
-      if (isLocalMode) saveLocalRsvps();
-
-      showMsg("Success! Your RSVP has been cancelled.", "success");
-    } else {
-      // 2. Register RSVP
-      if (event.registered >= event.max_attendees) {
-        showMsg("Sorry, this event is already fully booked.", "error");
-        btn.disabled = false;
-        renderEvents();
-        return;
-      }
-
-      if (!isLocalMode) {
-        // DB Mode
-        const { error: insertError } = await supabase
-          .from('event_rsvps')
-          .insert({
-            event_id: event.id,
-            user_id: currentUser.id,
-            user_name: currentUser.user_metadata?.display_name || "User",
-            user_email: currentUser.email
-          });
-
-        if (insertError) throw insertError;
-
-        // Increment registration count
-        const { error: updateError } = await supabase
-          .from('events')
-          .update({ registered: event.registered + 1 })
-          .eq('id', event.id);
-
-        if (updateError) throw updateError;
-      } else {
-        // Local Mode
-        const localEvt = eventsList.find(e => e.id === event.id);
-        if (localEvt) {
-          localEvt.registered = localEvt.registered + 1;
-          saveLocalEvents();
-        }
-      }
-
-      // Update State
-      userRsvps.push(event.id);
-      if (isLocalMode) saveLocalRsvps();
-
-      showMsg(`Congratulations! You have RSVP'd for ${event.name}.`, "success");
+  if (session && session.user) {
+    if (authButtons) authButtons.style.display = 'none';
+    if (userMenu) userMenu.style.display = 'flex';
+    if (userNameDisplay) {
+      userNameDisplay.textContent = session.user.user_metadata?.full_name || session.user.email;
+    }
+    
+    // Check if admin
+    const { data: profile } = await supabase.from('users').select('role').eq('id', session.user.id).single();
+    if (profile && profile.role === 'admin' && dashboardLink) {
+      dashboardLink.style.display = 'inline';
     }
 
-    // Reload and redraw UI
-    await loadEventsData();
-    renderEvents();
-    startCountdown();
-
-  } catch (err) {
-    console.error("RSVP Action Failed:", err);
-    showMsg(`Failed to process RSVP: ${err.message || 'Check database configurations.'}`, "error");
-    btn.disabled = false;
-  }
-}
-
-function showMsg(text, type) {
-  eventMessage.textContent = text;
-  eventMessage.className = "event-feedback-msg";
-  if (text) {
-    eventMessage.classList.add(type);
-  }
-}
-
-// Dynamic Countdown to Closest Future Event
-function startCountdown() {
-  if (countdownInterval) clearInterval(countdownInterval);
-
-  const now = new Date();
-  // Filter events in the future
-  const futureEvents = eventsList.filter(e => new Date(e.date + "T00:00:00") > now);
-
-  if (futureEvents.length === 0) {
-    countdownBanner.style.display = "none";
-    return;
-  }
-
-  // Find closest
-  futureEvents.sort((a, b) => new Date(a.date + "T00:00:00") - new Date(b.date + "T00:00:00"));
-  const targetEvent = futureEvents[0];
-  const targetDate = new Date(targetEvent.date + "T00:00:00");
-
-  countdownEventName.textContent = `Next Event: ${targetEvent.name} (${new Date(targetEvent.date).toLocaleDateString()})`;
-  countdownBanner.style.display = "grid";
-
-  function updateTimer() {
-    const currentTime = new Date();
-    const diff = targetDate - currentTime;
-
-    if (diff <= 0) {
-      clearInterval(countdownInterval);
-      countdownTimer.innerHTML = "<strong>Event is Live!</strong>";
-      return;
+    if (logoutBtn) {
+      logoutBtn.onclick = async () => {
+        await supabase.auth.signOut();
+        window.location.reload();
+      };
     }
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-    document.getElementById("cdDays").textContent = String(days).padStart(2, '0');
-    document.getElementById("cdHours").textContent = String(hours).padStart(2, '0');
-    document.getElementById("cdMinutes").textContent = String(minutes).padStart(2, '0');
-    document.getElementById("cdSeconds").textContent = String(seconds).padStart(2, '0');
+  } else {
+    if (authButtons) authButtons.style.display = 'block';
+    if (userMenu) userMenu.style.display = 'none';
   }
-
-  updateTimer();
-  countdownInterval = setInterval(updateTimer, 1000);
 }
 
-// On page load
-window.addEventListener('DOMContentLoaded', () => {
-  initEventsPage();
-});
+window.addEventListener('DOMContentLoaded', init);

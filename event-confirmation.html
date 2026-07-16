@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registration Confirmation - Hopeful Hearts</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="event-confirmation.css" />
+  
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-light">
+
+  <div class="conf-container">
+    <div class="conf-card" id="confCard" style="display:none;">
+      
+      <div class="conf-header">
+        <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+        <h1>Registration Successful!</h1>
+        <p>Thank you for registering. Here are your event details.</p>
+      </div>
+
+      <div class="ticket-wrapper" id="ticketWrapper">
+        <div class="ticket-header">
+          <img src="logo.png" alt="Hopeful Hearts Logo" class="ticket-logo" />
+          <h2 id="confEventName">Event Name</h2>
+        </div>
+        
+        <div class="ticket-body">
+          <div class="ticket-details">
+            <div class="detail-group">
+              <span class="detail-label">Name</span>
+              <span class="detail-value" id="confName">John Doe</span>
+            </div>
+            <div class="detail-group">
+              <span class="detail-label">Attendance Type</span>
+              <span class="detail-value" id="confType">Volunteer</span>
+            </div>
+            <div class="detail-group">
+              <span class="detail-label">Registration Number</span>
+              <span class="detail-value" id="confRegNo">#0000</span>
+            </div>
+            <div class="detail-group">
+              <span class="detail-label">Date & Time</span>
+              <span class="detail-value" id="confDateTime">Date Time</span>
+            </div>
+            <div class="detail-group">
+              <span class="detail-label">Location</span>
+              <span class="detail-value" id="confLocation">Location</span>
+            </div>
+          </div>
+          
+          <div class="ticket-qr">
+            <div id="qrcode"></div>
+            <span class="qr-label">Present this code at entry</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="conf-actions">
+        <button id="btnDownload" class="btn btn-primary"><i class="fa-solid fa-download"></i> Download Ticket</button>
+        <button id="btnShare" class="btn btn-outline"><i class="fa-solid fa-share-nodes"></i> Share Event</button>
+      </div>
+      
+      <div class="calendar-actions">
+        <h3>Add to Calendar</h3>
+        <div class="cal-btn-group">
+          <button id="btnGoogle" class="btn-cal"><i class="fa-brands fa-google"></i> Google</button>
+          <button id="btnApple" class="btn-cal"><i class="fa-brands fa-apple"></i> Apple</button>
+          <button id="btnOutlook" class="btn-cal"><i class="fa-brands fa-microsoft"></i> Outlook</button>
+          <button id="btnICS" class="btn-cal"><i class="fa-solid fa-file-arrow-down"></i> ICS File</button>
+        </div>
+      </div>
+      
+      <div style="text-align:center; margin-top: 32px;">
+        <a href="events.html" class="back-home-link">Return to Events</a>
+      </div>
+
+    </div>
+    
+    <div id="loadingMsg" style="text-align:center; padding: 60px;">
+      <h2 style="color:#64748b;">Loading your ticket...</h2>
+    </div>
+    <div id="errorMsg" class="error-msg" style="display:none;"></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+      }
+    }
+  </script>
+  <!-- HTML2Canvas for ticket download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script type="module" src="event-confirmation.js"></script>
+</body>
+</html>

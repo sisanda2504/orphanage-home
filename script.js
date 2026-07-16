@@ -5,53 +5,89 @@ const panel = document.querySelector(".chatbot-panel");
 const messages = document.querySelector(".chatbot-messages");
 const form = document.querySelector(".chatbot-form");
 const input = document.querySelector("#chatbot-input");
-const promptButtons = document.querySelectorAll("[data-prompt]");
 
-const botReplies = [
+// Inject Dynamic Quick Actions
+const promptsContainer = document.querySelector(".chatbot-prompts");
+if (promptsContainer) {
+  promptsContainer.innerHTML = `
+    <button type="button" onclick="handleQuestion('How can I donate?')">Donate</button>
+    <button type="button" onclick="handleQuestion('How can I volunteer?')">Volunteer</button>
+    <button type="button" onclick="handleQuestion('Can I visit the orphanage?')">Visit</button>
+    <button type="button" onclick="handleQuestion('How do I contact you?')">Contact</button>
+  `;
+}
+
+let currentContext = null;
+
+const intents = [
   {
-    keywords: ["donate", "donation", "money", "sponsor", "support", "give"],
-    reply:
-      "Thank you for wanting to help. You can support Hopeful Hearts with financial donations, food, clothing, school supplies, books, or by sponsoring daily care needs. Please contact hello@hopefulhearts.org to arrange a donation.",
+    id: "greeting",
+    keywords: ["hello", "hi", "hey", "good morning", "good afternoon", "good evening", "holla", "howzit", "howsit", "molo", "molweni", "mholo", "sawubona", "sanibonani", "hola"],
+    reply: `👋 Hello! Welcome to Hopeful Hearts.<br><br>I'm your virtual assistant. I can help you find information, navigate the website, register for events, donate, volunteer, and much more.<br><br>What would you like help with today?`
   },
   {
-    keywords: ["volunteer", "help", "mentor", "tutor", "time", "assist"],
-    reply:
-      "We welcome caring volunteers for tutoring, mentoring, activities, admin support, and donation drives. Send your availability and area of interest to hello@hopefulhearts.org so the team can guide you through the next steps.",
+    id: "donate",
+    keywords: ["donate", "donation", "money", "sponsor", "support", "give", "help"],
+    reply: `❤️ Thank you for supporting Hopeful Hearts!<br><br>You can easily contribute through our Donate page, where you can:<br><ul><li>Make a once-off donation</li><li>Become a monthly donor</li><li>Sponsor a child</li><li>Donate food, clothes or books</li></ul><br>If you experience any issues, please contact us.<br><br><button class="chatbot-action-btn" onclick="window.location.href='donate.html'">Go to Donate Page</button>`
   },
   {
-    keywords: ["visit", "tour", "come", "see", "location", "where"],
-    reply:
-      "Visits are arranged by appointment so the children stay safe and comfortable. Please email hello@hopefulhearts.org with your preferred date, group size, and reason for visiting.",
+    id: "volunteer",
+    keywords: ["volunteer", "mentor", "tutor", "time", "assist", "documents"],
+    reply: `🙌 We'd love to have you!<br><br>On our Volunteer page, you'll find a registration form where you can:<br><ul><li>Choose how you'd like to help</li><li>Select your availability</li><li>Submit your application</li></ul><br>Once submitted, we'll review it and get back to you.<br><br><button class="chatbot-action-btn" onclick="window.location.href='volunteer.html'">Register to Volunteer</button>`
   },
   {
-    keywords: ["contact", "email", "phone", "call", "message"],
-    reply:
-      "You can reach Hopeful Hearts at hello@hopefulhearts.org. Share your name, contact details, and how you would like to help, and the team will get back to you.",
+    id: "events",
+    keywords: ["event", "events", "calendar", "register", "attend", "upcoming"],
+    reply: `📅 We host events year-round.<br><br>On our Events page you can:<br><ul><li>View event details</li><li>Register to attend</li><li>See available volunteer spaces</li><li>Add events to your calendar</li><li>Get directions</li></ul><br><br><button class="chatbot-action-btn" onclick="window.location.href='events.html'">View Upcoming Events</button>`
   },
   {
-    keywords: ["mission", "about", "who", "what", "orphanage"],
-    reply:
-      "Hopeful Hearts is a non-profit orphanage focused on giving children a safe home, quality education, healthcare, nutritious meals, and steady emotional support.",
+    id: "visit",
+    keywords: ["visit", "tour", "come", "see", "location", "where", "address"],
+    reply: `🏡 Yes! We welcome visitors.<br><br>You can find all our visitor details on our Visit page, including:<br><ul><li>Visiting hours</li><li>Visitor guidelines</li><li>Booking information</li><li>Frequently asked questions</li></ul><br><br><button class="chatbot-action-btn" onclick="window.location.href='tour.html'">Book a Visit</button>`
   },
   {
-    keywords: ["education", "school", "learn", "tutor", "books"],
-    reply:
-      "Education is central to our work. We support children with schooling, tutoring, reading materials, life skills, and encouragement to dream about their futures.",
+    id: "sponsorship",
+    keywords: ["sponsor a child", "sponsorship", "sponsor"],
+    reply: `❤️ You can become a sponsor by visiting the <b>Donate</b> page and selecting <b>Child Sponsorship</b>.<br><br>The page explains sponsorship options and how your support helps children.<br><br><button class="chatbot-action-btn" onclick="window.location.href='donate.html'">Sponsor a Child</button>`
   },
   {
-    keywords: ["health", "healthcare", "medical", "food", "meals", "care"],
-    reply:
-      "The children receive daily care that includes nutritious meals, medical attention when needed, emotional support, and a safe routine.",
+    id: "gallery",
+    keywords: ["gallery", "photos", "pictures", "images"],
+    reply: `📷 Visit our <b>Gallery</b> page to explore photos of:<br><ul><li>Daily activities</li><li>Education</li><li>Sports</li><li>Celebrations</li><li>Community events</li></ul><br><br><button class="chatbot-action-btn" onclick="window.location.href='gallery.html'">Explore Gallery</button>`
   },
   {
-    keywords: ["hello", "hi", "hey", "good morning", "good afternoon"],
-    reply:
-      "Hello, and welcome to Hopeful Hearts. I can help with donations, volunteering, visits, contact details, and our mission.",
+    id: "virtual_tour",
+    keywords: ["virtual tour", "explore", "facilities", "rooms", "inside"],
+    reply: `🏡 Want to explore Hopeful Hearts?<br><br>Open the Virtual Tour page to walk through our facilities, including classrooms, library, dining hall and playground.<br><br><button class="chatbot-action-btn" onclick="window.location.href='tour.html'">Start Virtual Tour</button>`
   },
+  {
+    id: "impact",
+    keywords: ["community impact", "impact", "donations map", "statistics"],
+    reply: `🌍 Visit our <b>Community Impact</b> page to see donations from supporters around the world and how the community is growing.`
+  },
+  {
+    id: "contact",
+    keywords: ["contact", "email", "phone", "call", "message", "reach"],
+    reply: `📞 You can open the <b>Contact</b> page from the navigation menu.<br><br>There you'll find:<br><ul><li>Phone number</li><li>Email</li><li>Address</li><li>Office hours</li><li>Contact form</li></ul>`
+  },
+  {
+    id: "login",
+    keywords: ["login", "sign in", "log in", "access account"],
+    reply: `🔐 Click <b>Sign In</b> in the top-right corner of the website to access your account.`
+  },
+  {
+    id: "signup",
+    keywords: ["sign up", "create account", "register account", "join us"],
+    reply: `👤 Click <b>Join Us</b> in the navigation bar to create a Hopeful Hearts account.`
+  },
+  {
+    id: "balance",
+    keywords: ["balance", "account balance", "transactions", "my account"],
+    reply: `💳 If you are logged in, click <b>Dashboard</b> in the top navigation bar to view your account balance and recent transactions.`
+  }
 ];
 
-const fallbackReply =
-  "I can help with questions about donations, volunteering, visits, contact details, education, healthcare, and the Hopeful Hearts mission.";
+const fallbackReply = `I'm not sure about that yet, but I can help you with:<br><ul><li>Donations</li><li>Volunteering</li><li>Events</li><li>Visits</li><li>Sponsorships</li><li>Gallery</li><li>Virtual Tour</li><li>Contact Information</li></ul>`;
 
 function setChatOpen(isOpen) {
   chatbot.classList.toggle("is-open", isOpen);
@@ -68,18 +104,38 @@ function setChatOpen(isOpen) {
 function addMessage(text, sender) {
   const message = document.createElement("div");
   message.className = `chatbot-message ${sender}`;
-  message.textContent = text;
+  // Allow HTML for bot responses, escape user input
+  if (sender === "user") {
+    message.textContent = text;
+  } else {
+    message.innerHTML = text;
+  }
   messages.appendChild(message);
   messages.scrollTop = messages.scrollHeight;
 }
 
 function getBotReply(question) {
   const normalizedQuestion = question.toLowerCase();
-  const match = botReplies.find(({ keywords }) =>
+  
+  // Try matching directly
+  let match = intents.find(({ keywords }) =>
     keywords.some((keyword) => normalizedQuestion.includes(keyword))
   );
 
-  return match ? match.reply : fallbackReply;
+  // Fallback to conversation memory if ambiguous
+  if (!match && currentContext) {
+    // If we have a context, we can assume they are still asking about it if it's a short question
+    if (normalizedQuestion.split(" ").length <= 4) {
+      match = intents.find(i => i.id === currentContext);
+    }
+  }
+
+  if (match) {
+    currentContext = match.id;
+    return match.reply;
+  }
+  
+  return fallbackReply;
 }
 
 function handleQuestion(question) {
@@ -110,12 +166,6 @@ form.addEventListener("submit", (event) => {
   handleQuestion(input.value);
 });
 
-promptButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    handleQuestion(button.dataset.prompt);
-  });
-});
-
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && chatbot.classList.contains("is-open")) {
     setChatOpen(false);
@@ -124,7 +174,7 @@ document.addEventListener("keydown", (event) => {
 });
 
 addMessage(
-  "Hi, I am the Hopeful Hearts assistant. Ask me about donating, volunteering, visits, or our mission.",
+  "👋 Hello! Welcome to Hopeful Hearts.<br><br>I'm your virtual assistant. I can help you find information, navigate the website, register for events, donate, volunteer, and much more.<br><br>What would you like help with today?",
   "bot"
 );
 

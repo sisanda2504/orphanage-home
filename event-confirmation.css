@@ -1,0 +1,227 @@
+/* Event Confirmation Styles */
+body.bg-light {
+  background-color: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  color: #334155;
+  margin: 0;
+  padding: 0;
+}
+
+.conf-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.conf-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+}
+
+.conf-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.success-icon {
+  width: 64px;
+  height: 64px;
+  background-color: #22c55e;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 16px;
+}
+
+.conf-header h1 {
+  font-size: 2rem;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.conf-header p {
+  color: #64748b;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Ticket Styling */
+.ticket-wrapper {
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.ticket-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.ticket-logo {
+  height: 40px;
+}
+
+.ticket-header h2 {
+  font-size: 1.3rem;
+  color: #0f172a;
+  margin: 0;
+}
+
+.ticket-body {
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+@media (max-width: 500px) {
+  .ticket-body {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+.ticket-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 1.1rem;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.ticket-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.qr-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Actions */
+.conf-actions {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.conf-actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+}
+.btn-primary:hover { background: #2563eb; }
+
+.btn-outline {
+  background: transparent;
+  color: #3b82f6;
+  border: 2px solid #3b82f6;
+}
+.btn-outline:hover { background: #eff6ff; }
+
+/* Calendar */
+.calendar-actions h3 {
+  font-size: 1.1rem;
+  color: #0f172a;
+  margin-top: 0;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.cal-btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn-cal {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+.btn-cal:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.back-home-link {
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+}
+.back-home-link:hover {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.error-msg {
+  text-align: center;
+  color: #ef4444;
+  padding: 40px;
+  font-weight: 500;
+  background: #fee2e2;
+  border-radius: 12px;
+}
