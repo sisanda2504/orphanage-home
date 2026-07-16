@@ -98,6 +98,7 @@ function renderGrid() {
     card.innerHTML = `
       <div class="event-banner ${themeClass}" style="${bgStyle}">
         ${bannerContent}
+        <div class="event-card-countdown" data-date="${e.date}${e.time ? 'T' + e.time : 'T00:00:00'}"></div>
         <button class="card-more-btn" data-id="${e.id}" aria-label="More options">
           <i class="fa-solid fa-ellipsis-vertical"></i>
         </button>
@@ -320,3 +321,27 @@ async function checkAuth() {
 }
 
 window.addEventListener('DOMContentLoaded', init);
+
+setInterval(() => {
+  document.querySelectorAll('.event-card-countdown').forEach(el => {
+    const targetDateStr = el.getAttribute('data-date');
+    if (!targetDateStr) return;
+    const targetDate = new Date(targetDateStr).getTime();
+    if (isNaN(targetDate)) return;
+    
+    const now = new Date().getTime();
+    const distance = targetDate - now;
+
+    if (distance < 0) {
+      el.innerHTML = "Started / Ended";
+      return;
+    }
+
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+    el.innerHTML = `<i class="fa-regular fa-clock" style="margin-right: 4px;"></i> ${days}d ${hours}h ${minutes}m ${seconds}s`;
+  });
+}, 1000);
