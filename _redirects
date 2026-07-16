@@ -1,0 +1,11 @@
+# Explicit page routes — serve each HTML file directly
+/login          /login.html         200
+/signup         /signup.html        200
+/donate         /donate.html        200
+/balance        /balance.html       200
+/events         /events.html        200
+/impact         /impact.html        200
+/tour           /tour.html          200
+/gallery        /gallery.html       200
+/tickets        /tickets.html       200
+/admin          /admin/admin.html   200

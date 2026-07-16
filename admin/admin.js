@@ -6,6 +6,19 @@
 
 /* ===== SUPABASE CLIENT ===== */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { EMAILJS_CONFIG } from './emailjs-config.js';
+
+async function sendEmail(templateType, templateParams) {
+  const res = await fetch(EMAILJS_CONFIG.functionUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ templateType, templateParams })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+}
 
 const _supabaseUrl  = 'https://irzqdsxdiifosqzqdypj.supabase.co';
 const _supabaseKey  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyenFkc3hkaWlmb3NxenFkeXBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MTgwMjYsImV4cCI6MjA5ODk5NDAyNn0.2mzC2WjiVIN2imGfKh0aKhdP97PCT6eLsTxOS4lfbh0';
@@ -435,11 +448,11 @@ const Volunteers = {
     Toast.show(`Volunteer ${status.toLowerCase()}.`, status === 'Approved' ? 'success' : 'warning');
     if (status === 'Approved' && v.email) {
       try {
-        await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templates.volunteerApproved, {
-          to_email:    v.email,
-          to_name:     v.name,
-          activity:    v.activity || v.skills || 'General Volunteering',
-          org_name:    'Hopeful Hearts Orphanage',
+        await sendEmail('volunteerApproved', {
+          to_email:      v.email,
+          to_name:       v.name,
+          activity:      v.activity || v.skills || 'General Volunteering',
+          org_name:      'Hopeful Hearts Orphanage',
           contact_email: 'hello@hopefulhearts.org'
         });
         Toast.show(`Approval email sent to ${v.email}.`, 'success');
@@ -1425,7 +1438,7 @@ const Sponsorships = {
     const s = this._rows.find(x => x.id === id);
     if (!s) return;
     try {
-      await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templates.sponsorFailed, {
+      await sendEmail('sponsorFailed', {
         to_email:      s.email,
         to_name:       s.display_name || 'Sponsor',
         amount:        `R${parseFloat(s.subscription_amount || 0).toFixed(2)}`,
